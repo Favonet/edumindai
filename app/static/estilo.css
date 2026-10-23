@@ -147,3 +147,13 @@ body.alto-contraste .material strong { background: transparent; color: var(--pri
 .prefs .botao { margin-top: 0; }
 .rodape summary { display: list-item; padding: .6rem 0; min-height: 0; }
 .texto-dislexia .paragrafo { margin-bottom: 1.6rem; }
+
+/* ---- v0.2.0: turmas e alunos, importação ---- */
+.selo-ok { background: #e7f3e8; color: #1e5b24; }
+.destaque-senha { border-left: 6px solid var(--primaria); background: var(--primaria-clara); }
+.destaque-senha .senha { font-family: ui-monospace, Consolas, monospace; font-size: 1.15rem; letter-spacing: .05em; }
+.linha-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 0; }
+.linha-form select { min-height: 44px; }
+.marcar { display: flex; gap: .5rem; align-items: center; min-height: 44px; }
+.ou { text-align: center; color: var(--sutil); margin: .75rem 0; }
+.versao { font-size: .85rem; }

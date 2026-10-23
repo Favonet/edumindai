@@ -5,8 +5,8 @@
 <div class="duas-colunas">
 <section class="cartao" aria-labelledby="novo-titulo">
   <h2 id="novo-titulo">Publicar novo material</h2>
-  <p class="sutil">Cole o texto da aula. O sistema divide em trechos, indexa para busca e gera versões adaptadas para TDAH, TEA e dislexia.</p>
-  <form method="post" action="/professor/materiais">
+  <p class="sutil">Envie um arquivo (PDF, Word ou TXT) ou cole o texto da aula. O sistema divide em trechos, indexa para busca e gera versões adaptadas para TDAH, TEA e dislexia.</p>
+  <form method="post" action="/professor/materiais" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <label for="titulo">Título</label>
     <input id="titulo" name="titulo" required maxlength="160">
@@ -14,8 +14,12 @@
     <input id="disciplina" name="disciplina" required maxlength="60">
     <label for="turma">Turma</label>
     <select id="turma" name="turma_id">{% for t in turmas %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}</select>
+    <label for="arquivo">Arquivo do material <span class="sutil">(PDF, DOCX ou TXT, até 5 MB)</span></label>
+    <input id="arquivo" name="arquivo" type="file" accept=".pdf,.docx,.txt" aria-describedby="ajuda-arquivo">
+    <p id="ajuda-arquivo" class="sutil">Só o texto é aproveitado. PDF de imagem escaneada não funciona: nesse caso, cole o texto.</p>
+    <p class="ou">ou</p>
     <label for="texto">Texto do material</label>
-    <textarea id="texto" name="texto" rows="10" required></textarea>
+    <textarea id="texto" name="texto" rows="10"></textarea>
     <button class="botao" type="submit">Publicar e adaptar</button>
   </form>
 </section>
@@ -25,7 +29,7 @@
   {% for m in materiais %}
     <li class="cartao"><p class="etiqueta">{{ m.disciplina }} · {{ m.turma.nome }}</p>
       <h3><a href="/professor/materiais/{{ m.id }}">{{ m.titulo }}</a></h3>
-      <p class="sutil">{{ m.trechos|length }} trechos indexados · {{ m.criado_em.strftime('%d/%m/%Y') }}</p></li>
+      <p class="sutil">{{ m.trechos|length }} trechos indexados · {{ m.criado_em.strftime('%d/%m/%Y') }}{% if m.origem and m.origem != 'texto digitado' %} · importado de {{ m.origem }}{% endif %}</p></li>
   {% else %}<li class="cartao">Nenhum material publicado ainda.</li>{% endfor %}
   </ul>
 </section>

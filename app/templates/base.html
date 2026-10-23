@@ -20,6 +20,7 @@
           <li><a href="/professor" {% if request.url.path == '/professor' %}aria-current="page"{% endif %}>Minha turma</a></li>
           <li><a href="/professor/alertas" {% if request.url.path.startswith('/professor/alertas') %}aria-current="page"{% endif %}>Alertas</a></li>
           <li><a href="/professor/materiais" {% if request.url.path.startswith('/professor/materiais') %}aria-current="page"{% endif %}>Materiais</a></li>
+          <li><a href="/professor/turmas" {% if request.url.path.startswith('/professor/turmas') %}aria-current="page"{% endif %}>Turmas e alunos</a></li>
         {% else %}
           <li><a href="/gestor" aria-current="page">Indicadores</a></li>
         {% endif %}
@@ -49,7 +50,7 @@
         <button type="submit" class="botao secundario">Salvar</button>
       </form>
     </details>
-    <p>EduMindAI · Projeto de Extensão BSI · IFC Camboriú</p>
+    <p>EduMindAI · Projeto de Extensão BSI · IFC Camboriú · <span class="versao">versão {{ VERSAO }}</span></p>
   </footer>
   {% endif %}
 </body>

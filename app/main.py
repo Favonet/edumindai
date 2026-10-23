@@ -9,15 +9,16 @@ from collections import Counter
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import rag, seguranca
+from . import __version__, rag, seguranca
 from .alertas import avaliar_checkin
+from .importacao import ErroImportacao, extrair_texto
 from .db import SessionLocal, criar_tabelas, get_db
 from .models import (PERFIS_SENSORIAIS, Adaptacao, Alerta, CheckIn, Estudante, LogAcesso,
                      Material, TrechoMaterial, Turma, Usuario)
@@ -45,6 +46,7 @@ templates = Jinja2Templates(directory=BASE / "templates")
 HUMORES = {1: ("😢", "Muito mal"), 2: ("🙁", "Mal"), 3: ("😐", "Mais ou menos"),
            4: ("🙂", "Bem"), 5: ("😄", "Muito bem")}
 templates.env.globals["HUMORES"] = HUMORES
+templates.env.globals["VERSAO"] = __version__
 
 
 @app.middleware("http")
@@ -238,7 +240,8 @@ def perguntar(material_id: int, request: Request, pergunta: str = Form(...), csr
     resposta, achados, ms = rag.responder_pergunta(pergunta[:300], est.perfil_sensorial, m.id)
     return render(request, "aluno_material.html", usuario, material=m, adaptacao=ad,
                   perfil=est.perfil_sensorial, descricao=rag.DESCRICAO_PERFIL[est.perfil_sensorial],
-                  pergunta=pergunta, resposta=resposta, achados=achados, tempo_busca=ms)
+                  pergunta=pergunta, resposta=resposta, achados=achados, tempo_busca=ms,
+                  modo_busca=rag.indice.modo)
 
 
 # ------------------------------------------------------------------ titular dos dados (LGPD)
@@ -334,18 +337,28 @@ def materiais_professor(request: Request, usuario: Usuario = Depends(exigir("pro
 
 
 @app.post("/professor/materiais")
-def novo_material(request: Request, titulo: str = Form(...), disciplina: str = Form(...),
-                  turma_id: int = Form(...), texto: str = Form(...), csrf: str = Form(""),
-                  usuario: Usuario = Depends(exigir("professor")), db=Depends(get_db)):
+async def novo_material(request: Request, titulo: str = Form(...), disciplina: str = Form(...),
+                        turma_id: int = Form(...), texto: str = Form(""), csrf: str = Form(""),
+                        arquivo: UploadFile | None = File(None),
+                        usuario: Usuario = Depends(exigir("professor")), db=Depends(get_db)):
     checar_csrf(request, csrf)
     if turma_id not in [t.id for t in _turmas_do_prof(db, usuario)]:
         raise HTTPException(403, "Turma não pertence ao professor.")
-    texto = texto.strip()
+    texto, origem = texto.strip(), "texto digitado"
+    if arquivo is not None and arquivo.filename:
+        dados = await arquivo.read(5 * 1024 * 1024 + 1)
+        try:
+            texto = extrair_texto(arquivo.filename, dados)
+        except ErroImportacao as exc:
+            avisar(request, f"Não foi possível importar “{arquivo.filename}”: {exc}")
+            return RedirectResponse("/professor/materiais", status_code=303)
+        origem = Path(arquivo.filename).name[:160]
     if len(texto.split()) < 20:
-        avisar(request, "O texto precisa ter pelo menos 20 palavras.")
+        avisar(request, "O texto precisa ter pelo menos 20 palavras (cole o texto ou envie um arquivo).")
         return RedirectResponse("/professor/materiais", status_code=303)
     m = Material(titulo=titulo.strip()[:160], disciplina=disciplina.strip()[:60],
-                 turma_id=turma_id, professor_id=usuario.id, texto_original=texto[:50000])
+                 turma_id=turma_id, professor_id=usuario.id, texto_original=texto[:50000],
+                 origem=origem)
     db.add(m); db.flush()
     for i, t in enumerate(rag.dividir_em_trechos(texto)):
         db.add(TrechoMaterial(material_id=m.id, ordem=i, texto=t))
@@ -365,6 +378,114 @@ def previa_material(material_id: int, request: Request, perfil: str = "TDAH",
     ad = obter_adaptacao(db, m, perfil)
     return render(request, "prof_material.html", usuario, material=m, adaptacao=ad, perfil=perfil,
                   perfis=PERFIS_SENSORIAIS, descricao=rag.DESCRICAO_PERFIL[perfil])
+
+
+# ------------------------------------------------------------------ professor: turmas e alunos (RF009, v0.2.0)
+def _estudante_do_prof(db, estudante_id: int, prof: Usuario) -> Estudante:
+    e = db.get(Estudante, estudante_id)
+    if not e or e.turma.professor_id != prof.id:
+        raise HTTPException(404, "Estudante não encontrado.")
+    return e
+
+
+@app.get("/professor/turmas", response_class=HTMLResponse)
+def turmas_professor(request: Request, usuario: Usuario = Depends(exigir("professor")),
+                     db=Depends(get_db)):
+    turmas = _turmas_do_prof(db, usuario)
+    return render(request, "prof_turmas.html", usuario, turmas=turmas,
+                  perfis=PERFIS_SENSORIAIS, hoje=date.today().isoformat())
+
+
+@app.post("/professor/turmas")
+def nova_turma(request: Request, nome: str = Form(...), escola: str = Form(...),
+               ano_letivo: int = Form(...), csrf: str = Form(""),
+               usuario: Usuario = Depends(exigir("professor")), db=Depends(get_db)):
+    checar_csrf(request, csrf)
+    if not nome.strip() or not escola.strip() or not 2000 <= ano_letivo <= 2100:
+        raise HTTPException(422, "Dados da turma inválidos.")
+    t = Turma(nome=nome.strip()[:60], escola=escola.strip()[:120], ano_letivo=ano_letivo,
+              professor_id=usuario.id)
+    db.add(t); db.commit()
+    seguranca.auditar(db, usuario.id, "criou_turma", f"turma:{t.id}")
+    avisar(request, f"Turma “{t.nome}” criada.")
+    return RedirectResponse("/professor/turmas", status_code=303)
+
+
+@app.post("/professor/estudantes")
+def novo_estudante(request: Request, nome: str = Form(...), email: str = Form(...),
+                   turma_id: int = Form(...), perfil_sensorial: str = Form("PADRAO"),
+                   csrf: str = Form(""), usuario: Usuario = Depends(exigir("professor")),
+                   db=Depends(get_db)):
+    checar_csrf(request, csrf)
+    if turma_id not in [t.id for t in _turmas_do_prof(db, usuario)]:
+        raise HTTPException(403, "Turma não pertence ao professor.")
+    email = email.strip().lower()
+    if perfil_sensorial not in PERFIS_SENSORIAIS or "@" not in email or not nome.strip():
+        raise HTTPException(422, "Dados do estudante inválidos.")
+    if db.scalar(select(Usuario.id).where(Usuario.email == email)):
+        avisar(request, "Já existe um usuário com este e-mail.")
+        return RedirectResponse("/professor/turmas", status_code=303)
+    senha = secrets.token_urlsafe(6)  # provisória: o professor entrega ao estudante/responsável
+    u = Usuario(nome=nome.strip()[:120], email=email, perfil="aluno",
+                senha_hash=seguranca.gerar_hash_senha(senha))
+    db.add(u); db.flush()
+    e = Estudante(usuario_id=u.id, turma_id=turma_id, perfil_sensorial=perfil_sensorial,
+                  consentimento_responsavel=False)
+    db.add(e); db.commit()
+    seguranca.auditar(db, usuario.id, "cadastrou_estudante", f"estudante:{e.id}")
+    # A senha provisória aparece só nesta resposta (não vai para o cookie nem para o banco).
+    avisar(request, f"{u.nome} cadastrado(a). O check-in fica bloqueado até o registro do "
+                    "consentimento do responsável.")
+    return render(request, "prof_turmas.html", usuario, turmas=_turmas_do_prof(db, usuario),
+                  perfis=PERFIS_SENSORIAIS, hoje=date.today().isoformat(),
+                  senha_nova={"nome": u.nome, "email": email, "senha": senha})
+
+
+@app.post("/professor/estudantes/{estudante_id}/consentimento")
+def registrar_consentimento(estudante_id: int, request: Request, nome_responsavel: str = Form(...),
+                            data_termo: date = Form(...), termo_arquivado: str = Form(None),
+                            csrf: str = Form(""), usuario: Usuario = Depends(exigir("professor")),
+                            db=Depends(get_db)):
+    checar_csrf(request, csrf)
+    e = _estudante_do_prof(db, estudante_id, usuario)
+    if not termo_arquivado or not nome_responsavel.strip() or data_termo > date.today():
+        avisar(request, "Informe o responsável, a data do termo e confirme que o termo assinado "
+                        "está arquivado na escola.")
+        return RedirectResponse("/professor/turmas", status_code=303)
+    e.consentimento_responsavel, e.data_consentimento = True, data_termo
+    e.nome_responsavel, e.consentimento_registrado_por = nome_responsavel.strip()[:120], usuario.id
+    db.commit()
+    seguranca.auditar(db, usuario.id, "registrou_consentimento", f"estudante:{e.id}")
+    avisar(request, f"Consentimento registrado para {e.usuario.nome}.")
+    return RedirectResponse("/professor/turmas", status_code=303)
+
+
+@app.post("/professor/estudantes/{estudante_id}/revogar")
+def revogar_consentimento(estudante_id: int, request: Request, csrf: str = Form(""),
+                          usuario: Usuario = Depends(exigir("professor")), db=Depends(get_db)):
+    """LGPD art. 8º, §5º: o consentimento pode ser revogado a qualquer momento."""
+    checar_csrf(request, csrf)
+    e = _estudante_do_prof(db, estudante_id, usuario)
+    e.consentimento_responsavel = False
+    db.commit()
+    seguranca.auditar(db, usuario.id, "revogou_consentimento", f"estudante:{e.id}")
+    avisar(request, f"Consentimento de {e.usuario.nome} revogado: novos check-ins ficam bloqueados.")
+    return RedirectResponse("/professor/turmas", status_code=303)
+
+
+@app.post("/professor/estudantes/{estudante_id}/perfil")
+def alterar_perfil(estudante_id: int, request: Request, perfil_sensorial: str = Form(...),
+                   csrf: str = Form(""), usuario: Usuario = Depends(exigir("professor")),
+                   db=Depends(get_db)):
+    checar_csrf(request, csrf)
+    e = _estudante_do_prof(db, estudante_id, usuario)
+    if perfil_sensorial not in PERFIS_SENSORIAIS:
+        raise HTTPException(422, "Perfil inválido.")
+    e.perfil_sensorial = perfil_sensorial
+    db.commit()
+    seguranca.auditar(db, usuario.id, "alterou_perfil", f"estudante:{e.id}")
+    avisar(request, f"Perfil de leitura de {e.usuario.nome} alterado.")
+    return RedirectResponse("/professor/turmas", status_code=303)
 
 
 # ------------------------------------------------------------------ gestor ------------------
@@ -392,4 +513,5 @@ def painel_gestor(request: Request, usuario: Usuario = Depends(exigir("gestor"))
 
 @app.get("/saude")
 def saude():
-    return {"status": "ok", "hora": datetime.now().isoformat(timespec="seconds")}
+    return {"status": "ok", "versao": __version__, "busca": rag.indice.modo,
+            "hora": datetime.now().isoformat(timespec="seconds")}

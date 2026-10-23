@@ -22,7 +22,7 @@
   <div class="resposta material perfil-{{ perfil|lower }}" role="region" aria-label="Resposta" aria-live="polite">
     {% if resposta %}
       {{ resposta|safe }}
-      <p class="sutil">Encontrado em {{ achados|length }} trecho(s) do material · busca em {{ '%.1f'|format(tempo_busca) }} ms</p>
+      <p class="sutil">Encontrado em {{ achados|length }} trecho(s) do material · busca {{ modo_busca }} em {{ '%.1f'|format(tempo_busca) }} ms</p>
     {% else %}
       <p>Não encontrei essa resposta no material. Tente com outras palavras ou pergunte ao seu professor.</p>
     {% endif %}

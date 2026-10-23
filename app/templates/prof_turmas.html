@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block titulo %}Turmas e alunos{% endblock %}
+{% block conteudo %}
+<h1>Turmas e alunos</h1>
+
+{% if senha_nova %}
+<section class="cartao destaque-senha" aria-labelledby="senha-titulo" role="status">
+  <h2 id="senha-titulo">Acesso de {{ senha_nova.nome }}</h2>
+  <p>E-mail: <strong>{{ senha_nova.email }}</strong> · Senha provisória: <strong class="senha">{{ senha_nova.senha }}</strong></p>
+  <p class="sutil">Anote e entregue ao estudante ou ao responsável. Esta senha aparece só agora: ela não fica guardada no sistema, apenas o seu código de verificação.</p>
+</section>
+{% endif %}
+
+<div class="duas-colunas">
+<div>
+{% for t in turmas %}
+<section class="cartao" aria-labelledby="turma-{{ t.id }}">
+  <h2 id="turma-{{ t.id }}">{{ t.nome }} <span class="sutil">· {{ t.escola }} · {{ t.ano_letivo }}</span></h2>
+  {% if t.estudantes %}
+  <div class="rolagem">
+  <table>
+    <caption class="visualmente-oculto">Estudantes da turma {{ t.nome }}</caption>
+    <thead><tr><th scope="col">Estudante</th><th scope="col">Perfil de leitura</th><th scope="col">Consentimento do responsável</th></tr></thead>
+    <tbody>
+    {% for e in t.estudantes|sort(attribute='usuario.nome') %}
+      <tr>
+        <th scope="row">{{ e.usuario.nome }}<br><span class="sutil">{{ e.usuario.email }}</span></th>
+        <td>
+          <form method="post" action="/professor/estudantes/{{ e.id }}/perfil" class="linha-form">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <label class="visualmente-oculto" for="perfil-{{ e.id }}">Perfil de leitura de {{ e.usuario.nome }}</label>
+            <select id="perfil-{{ e.id }}" name="perfil_sensorial">
+              {% for p in perfis %}<option value="{{ p }}" {% if p == e.perfil_sensorial %}selected{% endif %}>{{ 'Padrão' if p == 'PADRAO' else ('Dislexia' if p == 'DISLEXIA' else p) }}</option>{% endfor %}
+            </select>
+            <button class="botao secundario" type="submit">Salvar</button>
+          </form>
+        </td>
+        <td>
+          {% if e.consentimento_responsavel %}
+            <span class="selo selo-ok">Registrado em {{ e.data_consentimento.strftime('%d/%m/%Y') if e.data_consentimento }}</span>
+            {% if e.nome_responsavel %}<br><span class="sutil">Responsável: {{ e.nome_responsavel }}</span>{% endif %}
+            <form method="post" action="/professor/estudantes/{{ e.id }}/revogar">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button class="botao-link" type="submit">Registrar revogação</button>
+            </form>
+          {% else %}
+            <details>
+              <summary>Registrar termo assinado</summary>
+              <form method="post" action="/professor/estudantes/{{ e.id }}/consentimento">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <label for="resp-{{ e.id }}">Nome do responsável</label>
+                <input id="resp-{{ e.id }}" name="nome_responsavel" required maxlength="120">
+                <label for="data-{{ e.id }}">Data do termo</label>
+                <input id="data-{{ e.id }}" name="data_termo" type="date" required max="{{ hoje }}" value="{{ hoje }}">
+                <label class="marcar"><input type="checkbox" name="termo_arquivado" value="1" required> O termo assinado está arquivado na escola</label>
+                <button class="botao" type="submit">Registrar</button>
+              </form>
+            </details>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="sutil">Nenhum estudante cadastrado nesta turma.</p>{% endif %}
+</section>
+{% else %}
+<p class="cartao">Você ainda não tem turmas. Crie a primeira ao lado.</p>
+{% endfor %}
+</div>
+
+<div>
+<section class="cartao" aria-labelledby="novo-aluno">
+  <h2 id="novo-aluno">Cadastrar estudante</h2>
+  {% if turmas %}
+  <form method="post" action="/professor/estudantes">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="nome-aluno">Nome</label>
+    <input id="nome-aluno" name="nome" required maxlength="120" autocomplete="off">
+    <label for="email-aluno">E-mail de acesso</label>
+    <input id="email-aluno" name="email" type="email" required maxlength="160" autocomplete="off">
+    <label for="turma-aluno">Turma</label>
+    <select id="turma-aluno" name="turma_id">{% for t in turmas %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}</select>
+    <label for="perfil-novo">Perfil de leitura</label>
+    <select id="perfil-novo" name="perfil_sensorial" aria-describedby="ajuda-perfil">
+      {% for p in perfis %}<option value="{{ p }}" {% if p == 'PADRAO' %}selected{% endif %}>{{ 'Padrão' if p == 'PADRAO' else ('Dislexia' if p == 'DISLEXIA' else p) }}</option>{% endfor %}
+    </select>
+    <p id="ajuda-perfil" class="sutil">Use o perfil indicado pela equipe pedagógica. O perfil só muda a forma de apresentar os materiais.</p>
+    <button class="botao" type="submit">Cadastrar</button>
+  </form>
+  {% else %}<p class="sutil">Crie uma turma antes de cadastrar estudantes.</p>{% endif %}
+</section>
+
+<section class="cartao" aria-labelledby="nova-turma">
+  <h2 id="nova-turma">Nova turma</h2>
+  <form method="post" action="/professor/turmas">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="nome-turma">Nome da turma</label>
+    <input id="nome-turma" name="nome" required maxlength="60" placeholder="ex.: 5º ano B">
+    <label for="escola">Escola</label>
+    <input id="escola" name="escola" required maxlength="120">
+    <label for="ano">Ano letivo</label>
+    <input id="ano" name="ano_letivo" type="number" min="2000" max="2100" required value="{{ hoje[:4] }}">
+    <button class="botao" type="submit">Criar turma</button>
+  </form>
+</section>
+</div>
+</div>
+{% endblock %}
