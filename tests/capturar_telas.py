@@ -82,10 +82,19 @@ with sync_playwright() as p:
     page.click("section[aria-labelledby=novo-aluno] button[type=submit]")
     page.wait_for_load_state("networkidle")
     axe(page, "prof_turmas_cadastro")
-    page.screenshot(path=SAIDA / "15_prof_cadastro_senha.png", full_page=False)
-    page.locator("tr", has_text="Isabela Nunes").locator("summary").click()
-    page.locator("tr", has_text="Isabela Nunes").scroll_into_view_if_needed()
-    page.screenshot(path=SAIDA / "16_prof_registro_termo.png", full_page=False)
+    # da mensagem no topo até o fim do cartão da senha
+    area = page.locator("main").bounding_box(); card = page.locator("section.destaque-senha").bounding_box()
+    page.screenshot(path=SAIDA / "15_prof_cadastro_senha.png", full_page=True, clip={
+        "x": area["x"], "y": area["y"], "width": area["width"],
+        "height": card["y"] + card["height"] - area["y"] + 16})
+    linha = page.locator("tr", has_text="Isabela Nunes"); linha.locator("summary").click()
+    # últimas linhas da tabela, com o formulário do termo aberto (coordenadas da página, sem rolagem)
+    page.evaluate("window.scrollTo(0, 0)")
+    turma = page.locator("section.cartao", has=linha).bounding_box()
+    ini = page.locator("tr", has_text="Heitor Martins").bounding_box()
+    page.screenshot(path=SAIDA / "16_prof_registro_termo.png", full_page=True, clip={
+        "x": turma["x"], "y": ini["y"] - 4, "width": turma["width"],
+        "height": turma["y"] + turma["height"] - ini["y"] + 4})
     sair(page)
 
     # v0.2.0: pergunta parafraseada respondida pela busca híbrida (RF002)

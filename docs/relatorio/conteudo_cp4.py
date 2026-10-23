@@ -261,7 +261,7 @@ def escrever(g):
       "materiais adaptados, alertas e indicadores) continuam válidas e estão no relatório parcial.")
     F(TELAS / "14_prof_turmas.png", "Tela \"Turmas e alunos\": criação de turma e cadastro de estudante.", largura_cm=14)
     F(TELAS / "15_prof_cadastro_senha.png", "Senha provisória exibida uma única vez após o cadastro.", largura_cm=14)
-    F(TELAS / "16_prof_registro_termo.png", "Registro do termo de consentimento do responsável.", largura_cm=14)
+    F(TELAS / "16_prof_registro_termo.png", "Registro do termo de consentimento do responsável.", largura_cm=8)
     F(TELAS / "10_prof_materiais.png", "Publicação de material com envio de arquivo (PDF, DOCX ou TXT).", largura_cm=14)
     F(TELAS / "17_pergunta_parafrase_hibrida.png", "Pergunta parafraseada (\"por que chove?\") respondida pela "
       "busca híbrida.", largura_cm=13)

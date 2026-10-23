@@ -100,7 +100,7 @@ def _tamanho_png(caminho: Path):
         return struct.unpack(">II", f.read(8))
 
 
-def F(caminho: Path, legenda: str, largura_cm=15.0, altura_max_cm=19.0):
+def F(caminho: Path, legenda: str, largura_cm=15.0, altura_max_cm=14.0):
     cont["fig"] += 1
     cont["pic"] += 1
     rid = f"rIdCP4img{cont['fig']}"
@@ -156,6 +156,9 @@ def montar(modelo: Path, saida: Path):
     ini = doc.index("<w:body>") + len("<w:body>")
     corpo_modelo = doc[ini:doc.rindex("<w:sectPr")]
     sect = doc[doc.rindex("<w:sectPr"):doc.index("</w:body>")]
+    # o logo do cabeçalho é uma imagem flutuante que vai até ~3,2 cm do topo, e a margem do modelo
+    # é de 2 cm: o logo cobria o início de cada página (figuras cortadas). Margem superior de 3,7 cm.
+    sect = re.sub(r'w:top="\d+"', 'w:top="2098"', sect)
     elementos = re.findall(r"<w:p[ >].*?</w:p>|<w:tbl>.*?</w:tbl>", corpo_modelo, re.S)
     texto = lambda e: "".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", e))
     corte = next(i for i, e in enumerate(elementos) if texto(e).startswith("Nome do Estudante"))
