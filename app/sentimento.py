@@ -1,10 +1,14 @@
 """Motor de análise de sentimento dos check-ins (RF004).
 
-Versão MVP: combina a escala de humor escolhida pelo estudante (1 a 5) com um léxico
-de polaridade em português que trata negação ("não estou bem") e intensificadores
-("muito", "super"). A interface `analisar()` é a mesma que o modelo Transformer
-(BERTimbau ajustado) usará na próxima iteração, de modo que a troca não afeta o resto
-do sistema.
+Combina a escala de humor escolhida pelo estudante (1 a 5) com um léxico de polaridade em
+português. Versão 2 (release 0.2.0), além da negação e dos intensificadores da v1:
+  - contraste: em "X mas Y" a parte depois do "mas" pesa mais (é a conclusão da frase);
+  - atenuadores: "meio", "um pouco" reduzem a força da palavra seguinte;
+  - negação de palavra negativa ("não foi ruim") vira positivo fraco, não positivo pleno;
+  - expressões de várias palavras ("tudo bem", "de boa", "nada demais", "mais ou menos");
+  - léxico ampliado com gírias e palavras do cotidiano escolar.
+A interface `analisar()` não mudou, então um modelo Transformer (ex.: BERTimbau ajustado com
+dados reais) pode substituir este módulo sem afetar o resto do sistema.
 """
 import re
 import unicodedata
@@ -16,6 +20,9 @@ POSITIVAS = {
     "amei", "divertido", "divertida", "consegui", "aprendi", "orgulho", "amigos", "amigo",
     "amiga", "melhor", "descansado", "descansada", "seguro", "segura", "confiante", "paz",
     "facil", "entendi", "obrigado", "obrigada", "incrivel", "show", "massa", "top",
+    # v0.2.0
+    "curti", "curtir", "maneiro", "suave", "ajudou", "ajudaram", "orgulhoso", "orgulhosa",
+    "brinquei", "brincamos", "divertiu", "sorte", "venci", "ganhei", "carinho",
 }
 NEGATIVAS = {
     "triste", "mal", "ruim", "chateado", "chateada", "cansado", "cansada", "ansioso",
@@ -24,7 +31,22 @@ NEGATIVAS = {
     "estressado", "estressada", "cansativo", "confuso", "confusa", "irritado", "irritada",
     "vergonha", "frustrado", "frustrada", "brigaram", "briga", "bullying", "zoaram",
     "zoando", "excluido", "excluida", "doente", "dor", "sono", "perdido", "perdida", "chato",
+    # v0.2.0
+    "briguei", "brigou", "zoado", "zoada", "entediado", "entediada", "tedio", "pessimo",
+    "pessima", "horrivel", "machucou", "machuquei", "doeu", "assustado", "assustada",
+    "chata", "sozinhos", "ignoraram", "chorar",
 }
+# palavras de peso menor (tristeza leve, não sofrimento)
+PESOS_LEXICO = {"saudade": -0.5, "saudades": -0.5, "sono": -0.5, "cansado": -0.7,
+                "cansada": -0.7}
+EXPRESSOES = {  # expressões avaliadas antes das palavras isoladas
+    "tudo bem": 0.6, "tudo certo": 0.7, "deu certo": 0.7, "de boa": 0.6, "da hora": 0.8,
+    "nada demais": 0.0, "mais ou menos": 0.0, "tanto faz": 0.0,
+}
+CONTRASTES = ("mas", "porem", "so que", "entretanto", "contudo")
+PESO_ANTES_CONTRASTE, PESO_DEPOIS_CONTRASTE = 0.5, 1.5
+ATENUADORES = {"meio": 0.5, "pouco": 0.5, "levemente": 0.5}
+FORCA_NEGACAO_DE_NEGATIVO = 0.3  # "não foi ruim" ≈ levemente positivo
 NEGADORES = {"nao", "nem", "nunca", "jamais", "nada"}
 INTENSIFICADORES = {"muito": 1.5, "super": 1.5, "demais": 1.5, "bastante": 1.3, "tao": 1.3}
 
@@ -55,24 +77,53 @@ def normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", texto).strip()
 
 
+def _segmentos(texto_norm: str) -> list[tuple[str, float]]:
+    """Divide no último conector de contraste: [(antes, peso), (depois, peso)]."""
+    padrao = r"\b(" + "|".join(CONTRASTES) + r")\b"
+    partes = re.split(padrao, texto_norm)
+    if len(partes) < 3:
+        return [(texto_norm, 1.0)]
+    antes = " ".join(p for p in partes[:-2] if p not in CONTRASTES)
+    return [(antes, PESO_ANTES_CONTRASTE), (partes[-1], PESO_DEPOIS_CONTRASTE)]
+
+
+def _valores_segmento(seg: str) -> list[float]:
+    valores = []
+    for exp, v in EXPRESSOES.items():
+        if re.search(rf"\b{exp}\b", seg):
+            valores.append(v)
+            seg = re.sub(rf"\b{exp}\b", " ", seg)
+    # vírgula e ponto encerram o alcance da negação
+    for oracao in re.split(r"[,.;!?]", seg):
+        tokens = re.findall(r"[a-z]+", oracao)
+        for i, tok in enumerate(tokens):
+            if tok in PESOS_LEXICO:
+                valor = PESOS_LEXICO[tok]
+            elif tok in POSITIVAS:
+                valor = 1.0
+            elif tok in NEGATIVAS:
+                valor = -1.0
+            else:
+                continue
+            janela = tokens[max(0, i - 3):i]
+            if any(t in NEGADORES for t in janela):
+                valor = FORCA_NEGACAO_DE_NEGATIVO if valor < 0 else -0.8 * valor
+            for t in janela:
+                valor *= INTENSIFICADORES.get(t, 1.0) * ATENUADORES.get(t, 1.0)
+            valores.append(valor)
+    return valores
+
+
 def polaridade_texto(texto: str) -> float | None:
     """Retorna polaridade em [-1, 1] ou None se o texto não tiver palavras de opinião."""
-    tokens = re.findall(r"[a-z]+", normalizar(texto))
-    soma, achados = 0.0, 0
-    for i, tok in enumerate(tokens):
-        valor = 1.0 if tok in POSITIVAS else -1.0 if tok in NEGATIVAS else 0.0
-        if not valor:
-            continue
-        janela = tokens[max(0, i - 3):i]
-        if any(t in NEGADORES for t in janela):
-            valor *= -1
-        for t in janela:
-            valor *= INTENSIFICADORES.get(t, 1.0)
-        soma += valor
-        achados += 1
-    if not achados:
+    soma, pesos = 0.0, 0.0
+    for seg, peso in _segmentos(normalizar(texto)):
+        for v in _valores_segmento(seg):
+            soma += v * peso
+            pesos += peso
+    if not pesos:
         return None
-    return max(-1.0, min(1.0, soma / achados))
+    return max(-1.0, min(1.0, soma / pesos))
 
 
 def detectar_risco(texto: str) -> bool:

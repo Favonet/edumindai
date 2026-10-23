@@ -103,3 +103,36 @@ def test_migracao_acrescenta_colunas_em_banco_da_v010(tmp_path, monkeypatch):
     colunas = {c["name"] for c in inspect(eng).get_columns("trecho_material")}
     assert {"embedding", "embedding_modelo"} <= colunas
     modulo_db.migrar()  # rodar de novo não pode falhar
+
+
+# ---- Sentimento v2 (RF004) ----
+from app.sentimento import analisar, polaridade_texto  # noqa: E402
+
+
+def test_contraste_a_parte_depois_do_mas_pesa_mais():
+    assert polaridade_texto("a aula foi chata mas o recreio foi legal") > 0
+    assert polaridade_texto("gostei do lanche mas briguei com meu irmão") < 0
+
+
+def test_atenuador_reduz_a_forca():
+    assert abs(polaridade_texto("meio cansado")) < abs(polaridade_texto("cansado"))
+
+
+def test_negacao_de_palavra_negativa_e_positivo_fraco():
+    v = polaridade_texto("não foi ruim")
+    assert 0 < v < polaridade_texto("foi bom")
+
+
+def test_expressoes_de_varias_palavras():
+    assert polaridade_texto("nada demais") == 0
+    assert polaridade_texto("tudo certo") > 0
+
+
+def test_negacao_para_na_virgula():
+    # o "não" da primeira oração não pode inverter o "feliz" da segunda
+    assert polaridade_texto("não dormi, mas estou feliz") > 0
+
+
+def test_risco_continua_prevalecendo_na_v2():
+    r = analisar(5, "estou feliz mas às vezes queria sumir")
+    assert r.sinal_risco and r.rotulo == "negativo"
