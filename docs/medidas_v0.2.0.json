@@ -4,26 +4,26 @@
   "busca": {
     "5 materiais": {
       "trechos": 14,
-      "indexacao_ms": 3481.8,
+      "indexacao_ms": 3470.0,
       "tfidf": {
-        "media_ms": 5.12,
-        "p95_ms": 9.09
+        "media_ms": 4.68,
+        "p95_ms": 10.18
       },
       "hibrida": {
-        "media_ms": 130.88,
-        "p95_ms": 229.73
+        "media_ms": 108.12,
+        "p95_ms": 157.14
       }
     },
     "100 materiais": {
       "trechos": 280,
-      "indexacao_ms": 49925.8,
+      "indexacao_ms": 50246.6,
       "tfidf": {
-        "media_ms": 6.01,
-        "p95_ms": 10.76
+        "media_ms": 5.54,
+        "p95_ms": 10.02
       },
       "hibrida": {
-        "media_ms": 110.23,
-        "p95_ms": 162.48
+        "media_ms": 123.95,
+        "p95_ms": 248.28
       }
     }
   },
@@ -100,7 +100,7 @@
       "erros": [
         [
           4,
-          "n„o gostei da prova mas tudo bem",
+          "n√£o gostei da prova mas tudo bem",
           "neutro",
           "positivo"
         ],
@@ -112,7 +112,7 @@
         ],
         [
           2,
-          "tÙ de boa",
+          "t√¥ de boa",
           "negativo",
           "neutro"
         ]
@@ -124,7 +124,7 @@
       "erros": [
         [
           4,
-          "n„o gostei da prova mas tudo bem",
+          "n√£o gostei da prova mas tudo bem",
           "neutro",
           "positivo"
         ],
@@ -136,7 +136,7 @@
         ],
         [
           2,
-          "tÙ de boa",
+          "t√¥ de boa",
           "negativo",
           "neutro"
         ]
@@ -148,31 +148,31 @@
       "erros": [
         [
           3,
-          "gostei do lanche mas briguei com meu irm„o",
+          "gostei do lanche mas briguei com meu irm√£o",
           "negativo",
           "positivo"
         ],
         [
           3,
-          "tÙ meio cansado",
+          "t√¥ meio cansado",
           "neutro",
           "negativo"
         ],
         [
           3,
-          "estou com saudade da minha avÛ",
+          "estou com saudade da minha av√≥",
           "negativo",
           "neutro"
         ],
         [
           4,
-          "fiquei nervoso na apresentaÁ„o mas deu tudo certo",
+          "fiquei nervoso na apresenta√ß√£o mas deu tudo certo",
           "positivo",
           "neutro"
         ],
         [
           3,
-          "n„o foi ruim",
+          "n√£o foi ruim",
           "neutro",
           "positivo"
         ],
@@ -190,7 +190,7 @@
         ],
         [
           3,
-          "n„o estou triste",
+          "n√£o estou triste",
           "neutro",
           "positivo"
         ]

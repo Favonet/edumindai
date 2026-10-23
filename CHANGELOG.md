@@ -23,7 +23,7 @@ Projeto de Extensão Universitária II (BSI / IFC Camboriú).
 
 ### Medições (tests/medir_desempenho.py, docs/medidas_v0.2.0.json)
 - Recuperação, 30 perguntas reservadas: 1º resultado 26/30 (TF-IDF: 24/30); top-3 29/30 (28/30).
-- Tempo da busca híbrida: p95 de 162 a 230 ms (meta < 500 ms); TF-IDF ~10 ms.
+- Tempo da busca híbrida: p95 de 157 a 248 ms (meta < 500 ms); TF-IDF ~10 ms.
 - Sentimento: amostra nova de 40 frases 40/40 (v1: 32/40); amostra do CP3 17/20 nas duas versões.
 
 ### Alterado
