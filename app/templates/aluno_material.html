@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}{{ material.titulo }}{% endblock %}
+{% block conteudo %}
+<p><a href="/aluno/materiais">← Voltar para meus materiais</a></p>
+<p class="etiqueta">{{ material.disciplina }}</p>
+<h1>{{ material.titulo }}</h1>
+<p class="sutil">Versão adaptada para você: {{ descricao }}.</p>
+
+<article class="material perfil-{{ perfil|lower }}">
+  {{ adaptacao.conteudo_html|safe }}
+</article>
+
+<section class="cartao" aria-labelledby="perg-titulo">
+  <h2 id="perg-titulo">Perguntar sobre o material</h2>
+  <form method="post" action="/aluno/materiais/{{ material.id }}/perguntar">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="pergunta">Sua dúvida</label>
+    <input id="pergunta" name="pergunta" type="text" maxlength="300" required value="{{ pergunta or '' }}">
+    <button class="botao" type="submit">Perguntar</button>
+  </form>
+  {% if pergunta %}
+  <div class="resposta material perfil-{{ perfil|lower }}" role="region" aria-label="Resposta" aria-live="polite">
+    {% if resposta %}
+      {{ resposta|safe }}
+      <p class="sutil">Encontrado em {{ achados|length }} trecho(s) do material · busca em {{ '%.1f'|format(tempo_busca) }} ms</p>
+    {% else %}
+      <p>Não encontrei essa resposta no material. Tente com outras palavras ou pergunte ao seu professor.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

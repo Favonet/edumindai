@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}{{ material.titulo }}{% endblock %}
+{% block conteudo %}
+<p><a href="/professor/materiais">← Voltar para materiais</a></p>
+<p class="etiqueta">{{ material.disciplina }} · {{ material.turma.nome }}</p>
+<h1>{{ material.titulo }}</h1>
+<nav aria-label="Versões por perfil" class="abas">
+  {% for p in perfis %}
+  <a href="?perfil={{ p }}" {% if p == perfil %}aria-current="page"{% endif %}>{{ 'Original' if p == 'PADRAO' else p }}</a>
+  {% endfor %}
+</nav>
+<p class="sutil">Versão {{ 'original' if perfil == 'PADRAO' else 'para ' ~ perfil }}: {{ descricao }} · gerada por {{ 'modelo de linguagem' if adaptacao.metodo == 'llm' else 'regras de adaptação' }}.</p>
+<article class="material perfil-{{ perfil|lower }}">
+  {{ adaptacao.conteudo_html|safe }}
+</article>
+{% endblock %}

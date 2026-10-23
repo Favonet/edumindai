@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titulo %}Minha turma{% endblock %}
+{% block conteudo %}
+<h1>Minha turma{% if turmas %} · {{ turmas|map(attribute='nome')|join(', ') }}{% endif %}</h1>
+
+<div class="indicadores">
+  <div class="cartao indicador"><span class="numero">{{ feitos_hoje }}/{{ linhas|length }}</span><span>check-ins hoje</span></div>
+  <div class="cartao indicador {% if total_alertas %}alerta-ativo{% endif %}"><span class="numero">{{ total_alertas }}</span><span>alertas abertos</span>
+    {% if total_alertas %}<a href="/professor/alertas">Ver alertas →</a>{% endif %}</div>
+  <div class="cartao indicador"><span class="numero">{{ dist.get('positivo',0) }} · {{ dist.get('neutro',0) }} · {{ dist.get('negativo',0) }}</span><span>positivos · neutros · negativos (7 dias)</span></div>
+</div>
+
+<section class="cartao" aria-labelledby="tab-titulo">
+  <h2 id="tab-titulo">Estudantes</h2>
+  <div class="rolagem">
+  <table>
+    <caption class="visualmente-oculto">Últimos check-ins de cada estudante e alertas abertos</caption>
+    <thead><tr><th scope="col">Estudante</th><th scope="col">Perfil de leitura</th><th scope="col">Últimos 5 check-ins</th><th scope="col">Alertas</th></tr></thead>
+    <tbody>
+    {% for l in linhas %}
+      <tr>
+        <th scope="row">{{ l.est.usuario.nome }}</th>
+        <td><span class="etiqueta">{{ l.est.perfil_sensorial if l.est.perfil_sensorial != 'PADRAO' else 'Padrão' }}</span></td>
+        <td>
+          {% if l.ultimos %}
+          <ol class="mini-semana">
+          {% for c in l.ultimos %}<li class="s-{{ c.sentimento_rotulo }}" title="{{ c.data.strftime('%d/%m') }}: {{ HUMORES[c.humor][1] }}"><span aria-hidden="true">{{ HUMORES[c.humor][0] }}</span><span class="visualmente-oculto">{{ c.data.strftime('%d/%m') }} {{ HUMORES[c.humor][1] }};</span></li>{% endfor %}
+          </ol>
+          {% else %}<span class="sutil">sem check-ins</span>{% endif %}
+        </td>
+        <td>{% if l.alertas %}<a class="selo selo-alerta" href="/professor/alertas">{{ l.alertas }} aberto{{ 's' if l.alertas > 1 }}</a>{% else %}<span class="sutil">—</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}Meus materiais{% endblock %}
+{% block conteudo %}
+<h1>Meus materiais</h1>
+<p class="sutil">Os textos aparecem do jeito que fica mais fácil para você ler.</p>
+{% if materiais %}
+<ul class="lista-cartoes">
+  {% for m in materiais %}
+  <li class="cartao">
+    <p class="etiqueta">{{ m.disciplina }}</p>
+    <h2><a href="/aluno/materiais/{{ m.id }}">{{ m.titulo }}</a></h2>
+    <p class="sutil">Publicado em {{ m.criado_em.strftime('%d/%m/%Y') }}</p>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}<p class="cartao">Ainda não há materiais para a sua turma.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Materiais{% endblock %}
+{% block conteudo %}
+<h1>Materiais didáticos</h1>
+<div class="duas-colunas">
+<section class="cartao" aria-labelledby="novo-titulo">
+  <h2 id="novo-titulo">Publicar novo material</h2>
+  <p class="sutil">Cole o texto da aula. O sistema divide em trechos, indexa para busca e gera versões adaptadas para TDAH, TEA e dislexia.</p>
+  <form method="post" action="/professor/materiais">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="titulo">Título</label>
+    <input id="titulo" name="titulo" required maxlength="160">
+    <label for="disciplina">Disciplina</label>
+    <input id="disciplina" name="disciplina" required maxlength="60">
+    <label for="turma">Turma</label>
+    <select id="turma" name="turma_id">{% for t in turmas %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}</select>
+    <label for="texto">Texto do material</label>
+    <textarea id="texto" name="texto" rows="10" required></textarea>
+    <button class="botao" type="submit">Publicar e adaptar</button>
+  </form>
+</section>
+<section aria-labelledby="pub-titulo">
+  <h2 id="pub-titulo">Publicados</h2>
+  <ul class="lista-cartoes">
+  {% for m in materiais %}
+    <li class="cartao"><p class="etiqueta">{{ m.disciplina }} · {{ m.turma.nome }}</p>
+      <h3><a href="/professor/materiais/{{ m.id }}">{{ m.titulo }}</a></h3>
+      <p class="sutil">{{ m.trechos|length }} trechos indexados · {{ m.criado_em.strftime('%d/%m/%Y') }}</p></li>
+  {% else %}<li class="cartao">Nenhum material publicado ainda.</li>{% endfor %}
+  </ul>
+</section>
+</div>
+{% endblock %}

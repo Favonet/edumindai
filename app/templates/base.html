@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}EduMindAI{% endblock %} · EduMindAI</title>
+  <link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body class="{% if usuario %}{% if usuario.pref_fonte_grande %}fonte-grande {% endif %}{% if usuario.pref_alto_contraste %}alto-contraste {% endif %}{% if usuario.pref_espacamento %}espacamento {% endif %}{% endif %}">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo">
+    <div class="marca">EduMind<span class="logo">AI</span></div>
+    {% if usuario %}
+    <nav aria-label="Menu principal">
+      <ul>
+        {% if usuario.perfil == 'aluno' %}
+          <li><a href="/aluno" {% if request.url.path == '/aluno' %}aria-current="page"{% endif %}>Como estou hoje</a></li>
+          <li><a href="/aluno/materiais" {% if request.url.path.startswith('/aluno/materiais') %}aria-current="page"{% endif %}>Meus materiais</a></li>
+        {% elif usuario.perfil == 'professor' %}
+          <li><a href="/professor" {% if request.url.path == '/professor' %}aria-current="page"{% endif %}>Minha turma</a></li>
+          <li><a href="/professor/alertas" {% if request.url.path.startswith('/professor/alertas') %}aria-current="page"{% endif %}>Alertas</a></li>
+          <li><a href="/professor/materiais" {% if request.url.path.startswith('/professor/materiais') %}aria-current="page"{% endif %}>Materiais</a></li>
+        {% else %}
+          <li><a href="/gestor" aria-current="page">Indicadores</a></li>
+        {% endif %}
+        <li><a href="/meus-dados" {% if request.url.path == '/meus-dados' %}aria-current="page"{% endif %}>Meus dados</a></li>
+      </ul>
+    </nav>
+    <div class="conta">
+      <span>{{ usuario.nome.split(' ')[0] }}</span>
+      <form method="post" action="/sair"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao-link" type="submit">Sair</button></form>
+    </div>
+    {% endif %}
+  </header>
+  <main id="conteudo" tabindex="-1">
+    {% if aviso %}<p class="aviso" role="status">{{ aviso }}</p>{% endif %}
+    {% block conteudo %}{% endblock %}
+  </main>
+  {% if usuario %}
+  <footer class="rodape">
+    <details>
+      <summary>Preferências de leitura</summary>
+      <form method="post" action="/preferencias" class="prefs">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="voltar" value="{{ request.url.path }}">
+        <label><input type="checkbox" name="fonte_grande" value="1" {% if usuario.pref_fonte_grande %}checked{% endif %}> Letra maior</label>
+        <label><input type="checkbox" name="alto_contraste" value="1" {% if usuario.pref_alto_contraste %}checked{% endif %}> Alto contraste</label>
+        <label><input type="checkbox" name="espacamento" value="1" {% if usuario.pref_espacamento %}checked{% endif %}> Mais espaço entre linhas</label>
+        <button type="submit" class="botao secundario">Salvar</button>
+      </form>
+    </details>
+    <p>EduMindAI · Projeto de Extensão BSI · IFC Camboriú</p>
+  </footer>
+  {% endif %}
+</body>
+</html>

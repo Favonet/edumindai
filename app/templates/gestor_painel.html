@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Indicadores{% endblock %}
+{% block conteudo %}
+<h1>Indicadores da rede</h1>
+<p class="sutil">Dados agregados dos últimos 30 dias, sem identificação de estudantes.</p>
+<section class="cartao">
+  <div class="rolagem">
+  <table>
+    <caption class="visualmente-oculto">Indicadores por turma</caption>
+    <thead><tr><th scope="col">Turma</th><th scope="col">Escola</th><th scope="col">Estudantes</th><th scope="col">Adesão ao check-in</th><th scope="col">Check-ins negativos</th><th scope="col">Alertas abertos</th><th scope="col">Materiais</th></tr></thead>
+    <tbody>
+    {% for r in resumo %}
+    <tr><th scope="row">{{ r.turma.nome }}</th><td>{{ r.turma.escola }}</td><td>{{ r.estudantes }}</td>
+      <td><meter min="0" max="100" value="{{ r.adesao|round(0) }}" aria-hidden="true"></meter> {{ r.adesao|round(0)|int }}%</td>
+      <td>{{ r.pct_neg|round(0)|int }}%</td><td>{{ r.alertas_abertos }}</td><td>{{ r.materiais }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<section class="cartao" aria-labelledby="aud-titulo">
+  <h2 id="aud-titulo">Trilha de auditoria (LGPD)</h2>
+  <div class="rolagem">
+  <table>
+    <thead><tr><th scope="col">Data/hora</th><th scope="col">Usuário</th><th scope="col">Ação</th><th scope="col">Recurso</th></tr></thead>
+    <tbody>
+    {% for l in logs %}
+    <tr><td>{{ l.data_hora.strftime('%d/%m %H:%M:%S') }}</td><td>{% if not l.usuario %}—{% elif l.usuario.perfil == 'aluno' %}Estudante nº {{ l.usuario.id }}{% else %}{{ l.usuario.nome }}{% endif %}</td><td>{{ l.acao }}</td><td>{{ l.recurso }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

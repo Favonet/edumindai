@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Alertas{% endblock %}
+{% block conteudo %}
+<h1>Central de alertas</h1>
+<p class="sutil">Alertas gerados pela análise dos check-ins. O alerta é um sinal para conversar e acolher — não é um diagnóstico.</p>
+{% if not alertas %}<p class="cartao">Nenhum alerta no momento.</p>{% endif %}
+<ul class="lista-cartoes">
+{% for a in alertas %}
+  <li class="cartao alerta nivel-{{ a.nivel }} status-{{ a.status }}">
+    <div class="alerta-topo">
+      <span class="selo selo-{{ a.nivel }}">{{ 'Prioridade alta' if a.nivel == 'alto' else 'Atenção' }}</span>
+      <span class="selo">{{ {'aberto':'Aberto','em_acomp':'Em acompanhamento','resolvido':'Resolvido'}[a.status] }}</span>
+      <span class="sutil">{{ a.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
+    </div>
+    <h2>{{ a.estudante.usuario.nome }}</h2>
+    <p>{{ a.motivo }}</p>
+    {% if comentarios.get(a.id) %}<blockquote>“{{ comentarios[a.id] }}”</blockquote>{% endif %}
+    {% if a.observacao %}<p><strong>Registro:</strong> {{ a.observacao }}</p>{% endif %}
+    {% if a.status != 'resolvido' %}
+    <form method="post" action="/professor/alertas/{{ a.id }}" class="form-alerta">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label for="obs-{{ a.id }}">Registro do acompanhamento</label>
+      <input id="obs-{{ a.id }}" name="observacao" type="text" maxlength="1000">
+      <div class="acoes">
+        <button class="botao secundario" name="status" value="em_acomp" type="submit">Em acompanhamento</button>
+        <button class="botao" name="status" value="resolvido" type="submit">Marcar como resolvido</button>
+      </div>
+    </form>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+{% endblock %}

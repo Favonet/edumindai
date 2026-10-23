@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Meus dados{% endblock %}
+{% block conteudo %}
+<h1>Meus dados e privacidade</h1>
+<section class="cartao">
+  <h2>O que o EduMindAI guarda sobre você</h2>
+  <ul>
+    <li>Nome, e-mail institucional e perfil de acesso ({{ usuario.perfil }}).</li>
+    {% if usuario.perfil == 'aluno' %}
+    <li>Perfil de leitura usado para adaptar os materiais.</li>
+    <li>Seus check-ins diários: a carinha escolhida e o comentário (o comentário fica guardado de forma criptografada).</li>
+    {% endif %}
+    <li>Registro de acessos, para saber quem viu informações pessoais e quando.</li>
+  </ul>
+  <h2>Para que usamos</h2>
+  <p>Para adaptar os materiais de estudo e para avisar o professor quando alguém pode precisar de apoio. Os dados não são vendidos nem usados para propaganda. A gestão da escola só vê números gerais da turma, sem nomes.</p>
+  <h2>Por quanto tempo</h2>
+  <p>Os check-ins são apagados automaticamente ao fim do ano letivo seguinte.</p>
+  <h2>Seus direitos (LGPD, art. 18)</h2>
+  <p>Você e seu responsável podem ver, corrigir ou pedir a exclusão destes dados a qualquer momento junto à escola.</p>
+  <p><a class="botao" href="/meus-dados/exportar">Baixar uma cópia dos meus dados</a></p>
+</section>
+{% endblock %}

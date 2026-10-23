@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titulo %}Como estou hoje{% endblock %}
+{% block conteudo %}
+<h1>Oi, {{ usuario.nome.split(' ')[0] }}! Como você está hoje?</h1>
+
+{% if not consentimento %}
+<p class="cartao">O check-in fica disponível depois que seu responsável assinar o termo de consentimento na escola.</p>
+{% else %}
+<form method="post" action="/aluno/checkin" class="cartao checkin">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <fieldset>
+    <legend>Escolha a opção que mais combina com você agora</legend>
+    <div class="humores">
+      {% for valor, (emoji, rotulo) in HUMORES.items() %}
+      <label class="humor">
+        <input type="radio" name="humor" value="{{ valor }}" required {% if hoje and hoje.humor == valor %}checked{% endif %}>
+        <span class="emoji" aria-hidden="true">{{ emoji }}</span>
+        <span class="rotulo">{{ rotulo }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <label for="comentario">Quer contar mais alguma coisa? <span class="sutil">(opcional)</span></label>
+  <textarea id="comentario" name="comentario" rows="3" maxlength="500" aria-describedby="ajuda-comentario"></textarea>
+  <p id="ajuda-comentario" class="sutil">Só o seu professor vê o que você escrever, e apenas se precisar te ajudar.</p>
+  <button class="botao grande" type="submit">{% if hoje %}Atualizar meu check-in{% else %}Enviar{% endif %}</button>
+</form>
+{% endif %}
+
+<section class="cartao" aria-labelledby="semana-titulo">
+  <h2 id="semana-titulo">Minha semana</h2>
+  {% if semana %}
+  <ol class="semana">
+    {% for c in semana %}
+    <li><span class="dia">{{ ['seg','ter','qua','qui','sex','sáb','dom'][c.data.weekday()] }}</span>
+        <span class="emoji" aria-hidden="true">{{ HUMORES[c.humor][0] }}</span>
+        <span class="visualmente-oculto">{{ HUMORES[c.humor][1] }}</span></li>
+    {% endfor %}
+  </ol>
+  {% else %}<p class="sutil">Você ainda não fez nenhum check-in nesta semana.</p>{% endif %}
+</section>
+{% endblock %}
