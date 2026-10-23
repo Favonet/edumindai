@@ -445,10 +445,12 @@ def escrever(g):
 
     # ------------------------------------------------------------------ Anexos
     H1("Anexos")
-    DESTAQUE("**Anexo A – Repositório do código-fonte:** [[https://github.com/[usuário]/edumindai]] (releases "
-             "v0.1.0 e v0.2.0). O repositório contém o código, os 53 testes automatizados, o script de medição "
-             "dos indicadores do Quadro 8, o script de captura de telas e verificação de acessibilidade, o "
-             "histórico de versões (CHANGELOG) e as instruções de execução (README).")
+    P("**Anexo A – Código-fonte da release 0.2.0 (Google Drive):** "
+      "https://drive.google.com/file/d/1lpdqY5p4nO7sRYosHtaqYY8aMTycOKnd/view?usp=sharing. O arquivo contém o "
+      "código, os 53 testes automatizados, o script de medição dos indicadores do Quadro 8, o script de captura "
+      "de telas e verificação de acessibilidade, o histórico de versões (CHANGELOG) e as instruções de execução "
+      "(README). O histórico completo, com as releases marcadas como v0.1.0 e v0.2.0, é mantido em repositório "
+      "Git.", recuo=False)
     P("**Anexo B – Agenda 2030 da ONU (ODS 4 e ODS 10):** "
       "https://brasil.un.org/pt-br/91863-agenda-2030-para-o-desenvolvimento-sustentavel", recuo=False)
     P("**Anexo C – Diretrizes WCAG 2.1 (W3C):** https://www.w3.org/TR/WCAG21/", recuo=False)
