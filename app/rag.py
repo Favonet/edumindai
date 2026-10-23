@@ -2,25 +2,33 @@
 
 Etapas:
  1. Ingestão  — o professor envia o texto do material; ele é dividido em trechos (chunks).
- 2. Indexação — os trechos são vetorizados (TF-IDF nesta versão do MVP).
- 3. Recuperação — dada uma pergunta do estudante, recupera os k trechos mais similares
-    (similaridade de cosseno).
+ 2. Indexação — cada trecho recebe dois vetores: TF-IDF (léxico) e um embedding gerado por
+    um modelo de linguagem multilíngue (sentence-transformers). O embedding fica gravado no
+    banco (trecho_material.embedding) para não ser recalculado a cada reinício.
+ 3. Recuperação — busca híbrida: a similaridade de cosseno dos embeddings (que entende
+    paráfrases, ex.: "por que chove?" → precipitação) é combinada à do TF-IDF (que acerta
+    termos exatos). Se o modelo de embeddings não estiver instalado ou falhar ao carregar,
+    o sistema usa apenas o TF-IDF, como na v0.1.0.
  4. Geração/adaptação — o conteúdo recuperado é reescrito para o perfil sensorial do
     estudante. Se houver chave de API de LLM configurada (ANTHROPIC_API_KEY), o texto é
     gerado pelo modelo; caso contrário, aplica-se o adaptador por regras, que funciona
     offline e serve de alternativa (fallback).
 
-Na próxima iteração os vetores TF-IDF serão substituídos por embeddings armazenados no
-PostgreSQL com pgvector, mantendo as mesmas funções públicas deste módulo.
+Configuração (variáveis de ambiente):
+  EDUMIND_EMBEDDINGS=0            desliga os embeddings (usa só TF-IDF)
+  EDUMIND_MODELO_EMBEDDINGS=...   troca o modelo (padrão: paraphrase-multilingual-MiniLM-L12-v2)
+  EDUMIND_PESO_EMBEDDINGS=0.7     peso dos embeddings na busca híbrida (0 a 1)
 """
 from __future__ import annotations
 
 import html
+import logging
 import os
 import re
 import time
 from dataclasses import dataclass
 
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -80,26 +88,86 @@ class ResultadoBusca:
     similaridade: float
 
 
+MODELO_EMBEDDINGS_PADRAO = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+PESO_EMBEDDINGS = float(os.getenv("EDUMIND_PESO_EMBEDDINGS", "0.7"))
+MINIMO_TFIDF = 0.05     # similaridade mínima quando só o TF-IDF está ativo (igual à v0.1.0)
+MINIMO_HIBRIDO = 0.25   # similaridade mínima da combinação (embeddings dão ~0.1 a textos sem relação)
+
+_log = logging.getLogger("edumindai.rag")
+
+
+class CodificadorEmbeddings:
+    """Carrega o modelo de embeddings sob demanda. Se não houver o pacote
+    sentence-transformers, ou o modelo não puder ser baixado, fica indisponível e o
+    sistema segue só com o TF-IDF."""
+
+    def __init__(self, nome: str | None = None):
+        self.nome = nome or os.getenv("EDUMIND_MODELO_EMBEDDINGS", MODELO_EMBEDDINGS_PADRAO)
+        self._modelo = None
+        self.erro: str | None = None
+
+    def disponivel(self) -> bool:
+        if os.getenv("EDUMIND_EMBEDDINGS", "1") == "0":
+            return False
+        if self._modelo is None and self.erro is None:
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._modelo = SentenceTransformer(self.nome)
+            except Exception as exc:  # noqa: BLE001 — qualquer falha mantém o TF-IDF
+                self.erro = f"{type(exc).__name__}: {exc}"
+                _log.warning("Embeddings indisponíveis, usando só TF-IDF (%s)", self.erro)
+        return self._modelo is not None
+
+    def codificar(self, textos: list[str]) -> np.ndarray:
+        vetores = self._modelo.encode(textos, normalize_embeddings=True, convert_to_numpy=True,
+                                      batch_size=32, show_progress_bar=False)
+        return np.asarray(vetores, dtype=np.float32)
+
+
+codificador = CodificadorEmbeddings()
+
+
 class IndiceSemantico:
     def __init__(self):
         self._vetorizador: TfidfVectorizer | None = None
         self._matriz = None
+        self._emb: np.ndarray | None = None
         self._meta: list[tuple[int, int, str]] = []
 
-    def construir(self, trechos: list[tuple[int, int, str]]) -> None:
-        """trechos = [(trecho_id, material_id, texto), ...]"""
+    @property
+    def modo(self) -> str:
+        return "híbrida (embeddings + TF-IDF)" if self._emb is not None else "TF-IDF"
+
+    def construir(self, trechos: list[tuple[int, int, str]],
+                  embeddings: np.ndarray | None = None) -> None:
+        """trechos = [(trecho_id, material_id, texto), ...]; embeddings = matriz (n × d)
+        normalizada, na mesma ordem dos trechos, ou None para usar só o TF-IDF."""
         self._meta = trechos
         if not trechos:
-            self._vetorizador, self._matriz = None, None
+            self._vetorizador, self._matriz, self._emb = None, None, None
             return
         self._vetorizador = TfidfVectorizer(analyzer=analisador, sublinear_tf=True)
         self._matriz = self._vetorizador.fit_transform([t[2] for t in trechos])
+        self._emb = embeddings if embeddings is not None and len(embeddings) == len(trechos) else None
+
+    def pontuar(self, consulta: str, modo: str = "auto") -> np.ndarray:
+        """Similaridade de cada trecho com a consulta. modo: auto | tfidf | embeddings."""
+        tfidf = cosine_similarity(self._vetorizador.transform([consulta]), self._matriz)[0]
+        if modo == "tfidf" or self._emb is None or not codificador.disponivel():
+            return tfidf
+        semantica = self._emb @ codificador.codificar([consulta])[0]
+        if modo == "embeddings":
+            return semantica
+        return PESO_EMBEDDINGS * semantica + (1 - PESO_EMBEDDINGS) * tfidf
 
     def buscar(self, consulta: str, k: int = 3, material_id: int | None = None,
-               minimo: float = 0.05) -> list[ResultadoBusca]:
+               minimo: float | None = None, modo: str = "auto") -> list[ResultadoBusca]:
         if self._vetorizador is None or not consulta.strip():
             return []
-        sims = cosine_similarity(self._vetorizador.transform([consulta]), self._matriz)[0]
+        sims = self.pontuar(consulta, modo)
+        if minimo is None:
+            usa_emb = modo != "tfidf" and self._emb is not None and codificador.disponivel()
+            minimo = MINIMO_HIBRIDO if usa_emb else MINIMO_TFIDF
         ordem = sims.argsort()[::-1]
         saida = []
         for i in ordem:
@@ -117,10 +185,31 @@ class IndiceSemantico:
 indice = IndiceSemantico()
 
 
+def vetor_para_bytes(v: np.ndarray) -> bytes:
+    return np.asarray(v, dtype=np.float32).tobytes()
+
+
+def bytes_para_vetor(b: bytes) -> np.ndarray:
+    return np.frombuffer(b, dtype=np.float32)
+
+
 def reconstruir_indice(db) -> None:
+    """Recarrega o índice com todos os trechos. Calcula e grava os embeddings que faltam
+    (trechos novos ou gerados por outro modelo)."""
     from .models import TrechoMaterial
-    trechos = [(t.id, t.material_id, t.texto) for t in db.query(TrechoMaterial).all()]
-    indice.construir(trechos)
+    registros = db.query(TrechoMaterial).order_by(TrechoMaterial.id).all()
+    trechos = [(t.id, t.material_id, t.texto) for t in registros]
+    matriz = None
+    if registros and codificador.disponivel():
+        faltando = [t for t in registros
+                    if t.embedding is None or t.embedding_modelo != codificador.nome]
+        if faltando:
+            vetores = codificador.codificar([t.texto for t in faltando])
+            for t, v in zip(faltando, vetores):
+                t.embedding, t.embedding_modelo = vetor_para_bytes(v), codificador.nome
+            db.commit()
+        matriz = np.vstack([bytes_para_vetor(t.embedding) for t in registros])
+    indice.construir(trechos, matriz)
 
 
 # ---------------------------------------------------------------- 4. adaptação -------------

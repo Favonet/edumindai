@@ -1,8 +1,8 @@
 """Modelo de dados do EduMindAI (modelo físico, via SQLAlchemy)."""
 from datetime import datetime, date
 
-from sqlalchemy import (Boolean, Date, DateTime, Float, ForeignKey, Integer, String,
-                        Text, UniqueConstraint)
+from sqlalchemy import (Boolean, Date, DateTime, Float, ForeignKey, Integer, LargeBinary,
+                        String, Text, UniqueConstraint)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -24,7 +24,8 @@ class Usuario(Base):
     pref_espacamento: Mapped[bool] = mapped_column(Boolean, default=False)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
-    estudante: Mapped["Estudante"] = relationship(back_populates="usuario", uselist=False)
+    estudante: Mapped["Estudante"] = relationship(back_populates="usuario", uselist=False,
+                                                  foreign_keys="Estudante.usuario_id")
 
 
 class Turma(Base):
@@ -47,8 +48,13 @@ class Estudante(Base):
     perfil_sensorial: Mapped[str] = mapped_column(String(20), default="PADRAO")
     consentimento_responsavel: Mapped[bool] = mapped_column(Boolean, default=False)
     data_consentimento: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # v0.2.0: quem consentiu (nome do responsável) e quem registrou o termo no sistema
+    nome_responsavel: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    consentimento_registrado_por: Mapped[int | None] = mapped_column(
+        ForeignKey("usuario.id"), nullable=True)
 
-    usuario: Mapped[Usuario] = relationship(back_populates="estudante")
+    usuario: Mapped[Usuario] = relationship(back_populates="estudante",
+                                            foreign_keys=[usuario_id])
     turma: Mapped[Turma] = relationship(back_populates="estudantes")
     checkins: Mapped[list["CheckIn"]] = relationship(back_populates="estudante",
                                                       order_by="CheckIn.data.desc()")
@@ -93,6 +99,8 @@ class Material(Base):
     titulo: Mapped[str] = mapped_column(String(160))
     disciplina: Mapped[str] = mapped_column(String(60))
     texto_original: Mapped[str] = mapped_column(Text)
+    # v0.2.0: origem do texto (digitado ou nome do arquivo importado: PDF, DOCX, TXT)
+    origem: Mapped[str | None] = mapped_column(String(160), nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
     turma: Mapped[Turma] = relationship()
@@ -107,6 +115,10 @@ class TrechoMaterial(Base):
     material_id: Mapped[int] = mapped_column(ForeignKey("material.id"), index=True)
     ordem: Mapped[int] = mapped_column(Integer)
     texto: Mapped[str] = mapped_column(Text)
+    # v0.2.0: vetor do trecho (float32) gerado pelo modelo de embeddings e o nome do modelo,
+    # para não recalcular a cada reinício e para refazer se o modelo mudar
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    embedding_modelo: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     material: Mapped[Material] = relationship(back_populates="trechos")
 
