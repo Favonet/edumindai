@@ -50,8 +50,9 @@ class Estudante(Base):
     data_consentimento: Mapped[date | None] = mapped_column(Date, nullable=True)
     # v0.2.0: quem consentiu (nome do responsável) e quem registrou o termo no sistema
     nome_responsavel: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    consentimento_registrado_por: Mapped[int | None] = mapped_column(
-        ForeignKey("usuario.id"), nullable=True)
+    # id do usuário que registrou o termo (sem chave estrangeira para não criar uma segunda
+    # ligação estudante→usuario, o que deixaria ambíguos os joins existentes)
+    consentimento_registrado_por: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     usuario: Mapped[Usuario] = relationship(back_populates="estudante",
                                             foreign_keys=[usuario_id])

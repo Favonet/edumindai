@@ -8,6 +8,9 @@ _tmp = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/teste.db"
 os.environ["EDUMIND_ARQ_CHAVE"] = f"{_tmp}/chave"
 os.environ.pop("ANTHROPIC_API_KEY", None)
+# Os testes de fluxo não carregam o modelo de embeddings (lento); a busca híbrida tem
+# testes próprios com um codificador falso em tests/test_v020.py.
+os.environ.setdefault("EDUMIND_EMBEDDINGS", "0")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest  # noqa: E402

@@ -88,10 +88,15 @@ class ResultadoBusca:
     similaridade: float
 
 
-MODELO_EMBEDDINGS_PADRAO = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-PESO_EMBEDDINGS = float(os.getenv("EDUMIND_PESO_EMBEDDINGS", "0.7"))
+# Modelo e peso escolhidos com as 20 perguntas de calibração do gabarito (tests/gabarito.py),
+# comparando dois modelos multilíngues, dois tamanhos de trecho e pesos de 0 a 1.
+MODELO_EMBEDDINGS_PADRAO = "intfloat/multilingual-e5-small"
+PESO_EMBEDDINGS = float(os.getenv("EDUMIND_PESO_EMBEDDINGS", "0.8"))
 MINIMO_TFIDF = 0.05     # similaridade mínima quando só o TF-IDF está ativo (igual à v0.1.0)
-MINIMO_HIBRIDO = 0.25   # similaridade mínima da combinação (embeddings dão ~0.1 a textos sem relação)
+# Sem corte na busca híbrida: com o E5, perguntas fora do assunto chegam a ~0,66 e as do
+# assunto começam em ~0,68 (calibração), margem pequena demais para um corte confiável.
+# A tela mostra os trechos usados, então o estudante vê de onde veio a resposta.
+MINIMO_HIBRIDO = 0.0
 
 _log = logging.getLogger("edumindai.rag")
 
@@ -118,9 +123,15 @@ class CodificadorEmbeddings:
                 _log.warning("Embeddings indisponíveis, usando só TF-IDF (%s)", self.erro)
         return self._modelo is not None
 
-    def codificar(self, textos: list[str]) -> np.ndarray:
-        vetores = self._modelo.encode(textos, normalize_embeddings=True, convert_to_numpy=True,
-                                      batch_size=32, show_progress_bar=False)
+    def _prefixo(self, tipo: str) -> str:
+        # modelos da família E5 foram treinados com os prefixos "query: " e "passage: "
+        return f"{tipo}: " if "e5" in self.nome.lower() else ""
+
+    def codificar(self, textos: list[str], tipo: str = "passage") -> np.ndarray:
+        p = self._prefixo(tipo)
+        vetores = self._modelo.encode([p + t for t in textos], normalize_embeddings=True,
+                                      convert_to_numpy=True, batch_size=32,
+                                      show_progress_bar=False)
         return np.asarray(vetores, dtype=np.float32)
 
 
@@ -155,7 +166,7 @@ class IndiceSemantico:
         tfidf = cosine_similarity(self._vetorizador.transform([consulta]), self._matriz)[0]
         if modo == "tfidf" or self._emb is None or not codificador.disponivel():
             return tfidf
-        semantica = self._emb @ codificador.codificar([consulta])[0]
+        semantica = self._emb @ codificador.codificar([consulta], tipo="query")[0]
         if modo == "embeddings":
             return semantica
         return PESO_EMBEDDINGS * semantica + (1 - PESO_EMBEDDINGS) * tfidf

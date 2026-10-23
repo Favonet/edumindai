@@ -33,6 +33,33 @@ O denominador indica em quantas partes iguais o inteiro foi dividido. O numerado
 Frações equivalentes são frações diferentes que representam a mesma quantidade. Um meio e dois quartos são equivalentes, porque metade de uma barra de chocolate é a mesma quantidade que dois de seus quatro pedaços. Para encontrar uma fração equivalente, multiplicamos ou dividimos o numerador e o denominador pelo mesmo número.
 
 Para somar frações com o mesmo denominador, somamos apenas os numeradores e mantemos o denominador. Assim, um quinto mais dois quintos é igual a três quintos. Quando os denominadores são diferentes, primeiro transformamos as frações em frações equivalentes com o mesmo denominador."""),
+    ("O Sistema Solar", "Ciências", """O Sistema Solar é formado pelo Sol e por todos os corpos celestes que giram ao seu redor, como planetas, luas, asteroides e cometas. O Sol é uma estrela e produz a luz e o calor que chegam até a Terra.
+
+Os oito planetas do Sistema Solar são Mercúrio, Vênus, Terra, Marte, Júpiter, Saturno, Urano e Netuno. Os quatro primeiros são chamados de planetas rochosos, porque têm superfície sólida. Os outros quatro são chamados de planetas gasosos, porque são formados principalmente por gases e são muito maiores.
+
+Mercúrio é o planeta mais próximo do Sol. Júpiter é o maior planeta do Sistema Solar. Saturno é conhecido pelos seus anéis, formados por gelo e pedaços de rocha.
+
+A Terra faz dois movimentos principais. O movimento de rotação é o giro da Terra em torno de si mesma e dura cerca de 24 horas, dando origem ao dia e à noite. O movimento de translação é a volta da Terra ao redor do Sol e dura cerca de 365 dias, o que corresponde a um ano.
+
+A Lua é o satélite natural da Terra. Ela não tem luz própria e brilha porque reflete a luz do Sol. As fases da Lua, como lua nova, crescente, cheia e minguante, mudam conforme a parte iluminada que conseguimos ver daqui."""),
+    ("Fotossíntese", "Ciências", """A fotossíntese é o processo pelo qual as plantas produzem o próprio alimento. Para isso, elas usam a luz do Sol, a água retirada do solo pelas raízes e o gás carbônico absorvido do ar.
+
+A clorofila é o pigmento verde que dá cor às folhas. Ela fica dentro dos cloroplastos e é responsável por captar a energia da luz solar, que será usada na produção do alimento.
+
+Como resultado da fotossíntese, a planta produz glicose, um tipo de açúcar que serve de alimento e fonte de energia para o seu crescimento. Ao mesmo tempo, a planta libera oxigênio para o ambiente.
+
+O oxigênio liberado pelas plantas é usado na respiração dos seres vivos, inclusive dos seres humanos. Por isso, as florestas e as algas dos oceanos são tão importantes para a vida no planeta.
+
+Sem luz, a planta não consegue fazer fotossíntese. É por isso que uma planta guardada por muitos dias em um lugar escuro fica fraca, amarelada e pode morrer."""),
+    ("Substantivos e adjetivos", "Língua Portuguesa", """Substantivo é a palavra que dá nome aos seres, objetos, lugares, sentimentos e ideias. Casa, menino, Brasil, alegria e amizade são exemplos de substantivos.
+
+Os substantivos podem ser comuns ou próprios. O substantivo comum nomeia qualquer ser de uma espécie, como cidade e rio. O substantivo próprio nomeia um ser específico e é escrito com letra inicial maiúscula, como Camboriú e Amazonas.
+
+Adjetivo é a palavra que dá uma característica ao substantivo. Na frase a casa amarela é grande, as palavras amarela e grande são adjetivos, porque dizem como é a casa.
+
+O adjetivo concorda com o substantivo em gênero e número. Isso significa que, se o substantivo estiver no feminino ou no plural, o adjetivo também muda. Dizemos o gato preto, a gata preta e os gatos pretos.
+
+Para descobrir se uma palavra é adjetivo, podemos perguntar como é o substantivo. Se a palavra responder a essa pergunta, ela provavelmente é um adjetivo."""),
 ]
 
 ESTUDANTES = [  # nome fictício, perfil sensorial, padrão de humor (últimos dias)
