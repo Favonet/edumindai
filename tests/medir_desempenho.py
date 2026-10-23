@@ -1,70 +1,94 @@
-"""Gera as métricas do relatório parcial: desempenho da busca (RNF003), acerto da
-recuperação (RF002) e concordância do classificador de sentimento (RF004).
+"""Gera os indicadores da release 0.2.0 usados no relatório final (CP4):
+  - desempenho da busca (RNF003): TF-IDF e híbrida, com 5 materiais e com ~500 trechos;
+  - acerto da recuperação (RF002): gabarito de 50 perguntas (20 de calibração, 30 de avaliação);
+  - classificador de sentimento (RF004): v1 (v0.1.0) × v2 (v0.2.0) nas duas amostras.
 
-Uso: python tests/medir_desempenho.py
+Uso: python tests/medir_desempenho.py   (precisa do pacote sentence-transformers para a busca híbrida)
 """
 import json
+import logging
 import statistics
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+logging.disable(logging.WARNING)
 from app import rag  # noqa: E402
 from app.seed import MATERIAIS  # noqa: E402
-from app.sentimento import analisar  # noqa: E402
+from app.sentimento import analisar as analisar_v2  # noqa: E402
+from tests.amostra_sentimento import AMOSTRA_CP3, AMOSTRA_NOVA  # noqa: E402
+from tests.gabarito import AVALIACAO, CALIBRACAO  # noqa: E402
+from tests.referencia_sentimento_v010 import analisar as analisar_v1  # noqa: E402
 
-CONSULTAS = ["o que é condensação", "como somar frações", "lençol freático",
-             "numerador e denominador", "evaporação das plantas"]
+CONSULTAS = ["o que é condensação", "como somar frações", "por que chove",
+             "qual é o maior planeta", "por que as folhas são verdes"]
 
-PERGUNTAS_GABARITO = [  # (pergunta, trecho que deve aparecer no 1º resultado)
-    ("o que é condensação?", "condensação"), ("o que acontece na evaporação", "evaporação"),
-    ("o que é precipitação", "precipitação"), ("o que é lençol freático", "freáticos"),
-    ("por que o ciclo da água é importante", "importante porque"),
-    ("o que é o denominador", "denominador indica"),
-    ("o que são frações equivalentes", "equivalentes são"),
-    ("como somar frações com mesmo denominador", "somar frações"),
-    ("o que é transpiração das plantas", "transpiração"), ("o que é o numerador", "numerador indica"),
-]
 
-AMOSTRA_SENTIMENTO = [  # (humor, comentário, rótulo esperado — anotado manualmente)
-    (5, "muito feliz hoje!", "positivo"), (4, "gostei da aula", "positivo"), (4, "", "positivo"),
-    (3, "normal", "neutro"), (3, "dormi pouco", "neutro"), (2, "estou cansada e triste", "negativo"),
-    (1, "", "negativo"), (3, "não estou bem hoje", "negativo"),
-    (4, "não gostei da prova mas tudo bem", "neutro"), (2, "brigaram comigo no ônibus", "negativo"),
-    (5, "joguei bola com meus amigos", "positivo"), (3, "fiquei confuso na aula", "negativo"),
-    (4, "aprendi frações", "positivo"), (2, "", "negativo"), (3, "foi legal", "neutro"),
-    (1, "não aguento mais", "negativo"), (4, "estou com sono", "neutro"), (5, "", "positivo"),
-    (3, "meu cachorro ficou doente", "negativo"), (2, "tô de boa", "negativo"),
-]
+def _trechos(materiais):
+    saida = []
+    for mid, (_, _, txt) in enumerate(materiais):
+        saida += [(len(saida) + i, mid, t) for i, t in enumerate(rag.dividir_em_trechos(txt))]
+    return saida
+
+
+def _indice(trechos, com_emb):
+    ind = rag.IndiceSemantico()
+    t0 = time.perf_counter()
+    emb = rag.codificador.codificar([t[2] for t in trechos]) if com_emb else None
+    ind.construir(trechos, emb)
+    return ind, (time.perf_counter() - t0) * 1000
+
+
+def _tempos(ind, modo, repeticoes=20):
+    ind.buscar(CONSULTAS[0], modo=modo)  # aquecimento
+    tempos = []
+    for q in CONSULTAS * repeticoes:
+        t0 = time.perf_counter(); ind.buscar(q, modo=modo); tempos.append((time.perf_counter() - t0) * 1000)
+    return {"media_ms": round(statistics.mean(tempos), 2),
+            "p95_ms": round(statistics.quantiles(tempos, n=20)[18], 2)}
+
+
+def _acerto(ind, perguntas, modo):
+    t1 = sum(1 for q, e, *_ in perguntas if (r := ind.buscar(q, k=1, modo=modo, minimo=-1)) and e in r[0].texto)
+    t3 = sum(1 for q, e, *_ in perguntas
+             if any(e in x.texto for x in ind.buscar(q, k=3, modo=modo, minimo=-1)))
+    return {"perguntas": len(perguntas), "top1": t1, "top3": t3}
+
+
+def _sentimento(fn, amostra):
+    erros = [(h, t, e, fn(h, t).rotulo) for h, t, e in amostra if fn(h, t).rotulo != e]
+    return {"amostra": len(amostra), "acertos": len(amostra) - len(erros), "erros": erros}
 
 
 def medir():
-    saida = {"busca": {}}
-    for n in (2, 50, 200):
-        trechos = []
-        for mid, (_, _, txt) in enumerate((MATERIAIS * 100)[:n]):
-            trechos += [(len(trechos) + i, mid, t) for i, t in enumerate(rag.dividir_em_trechos(txt))]
-        ind = rag.IndiceSemantico()
-        t0 = time.perf_counter(); ind.construir(trechos); t_idx = (time.perf_counter() - t0) * 1000
-        tempos = []
-        for q in CONSULTAS * 40:
-            t0 = time.perf_counter(); ind.buscar(q); tempos.append((time.perf_counter() - t0) * 1000)
-        saida["busca"][n] = {"trechos": len(trechos), "indexacao_ms": round(t_idx, 1),
-                             "media_ms": round(statistics.mean(tempos), 2),
-                             "p95_ms": round(statistics.quantiles(tempos, n=20)[18], 2)}
+    com_emb = rag.codificador.disponivel()
+    saida = {"modelo_embeddings": rag.codificador.nome if com_emb else None,
+             "peso_embeddings": rag.PESO_EMBEDDINGS, "busca": {}}
 
-    ind = rag.IndiceSemantico(); trechos = []
-    for mid, (_, _, txt) in enumerate(MATERIAIS):
-        trechos += [(len(trechos) + i, mid, t) for i, t in enumerate(rag.dividir_em_trechos(txt))]
-    ind.construir(trechos)
-    top1 = sum(1 for q, e in PERGUNTAS_GABARITO if (r := ind.buscar(q, k=1)) and e in r[0].texto)
-    top3 = sum(1 for q, e in PERGUNTAS_GABARITO if any(e in x.texto for x in ind.buscar(q, k=3)))
-    saida["recuperacao"] = {"perguntas": len(PERGUNTAS_GABARITO), "acerto_top1": top1, "acerto_top3": top3}
+    for rotulo, mats in (("5 materiais", MATERIAIS), ("100 materiais", MATERIAIS * 20)):
+        trechos = _trechos(mats)
+        ind, ms_idx = _indice(trechos, com_emb)
+        saida["busca"][rotulo] = {"trechos": len(trechos), "indexacao_ms": round(ms_idx, 1),
+                                  "tfidf": _tempos(ind, "tfidf")}
+        if com_emb:
+            saida["busca"][rotulo]["hibrida"] = _tempos(ind, "auto")
 
-    erros = [(h, t, e, analisar(h, t).rotulo) for h, t, e in AMOSTRA_SENTIMENTO if analisar(h, t).rotulo != e]
-    saida["sentimento"] = {"amostra": len(AMOSTRA_SENTIMENTO),
-                           "acertos": len(AMOSTRA_SENTIMENTO) - len(erros), "erros": erros}
+    ind, _ = _indice(_trechos(MATERIAIS), com_emb)
+    saida["recuperacao"] = {}
+    for nome, conj in (("calibracao", CALIBRACAO), ("avaliacao", AVALIACAO)):
+        r = {"tfidf": _acerto(ind, conj, "tfidf")}
+        if com_emb:
+            r["hibrida"] = _acerto(ind, conj, "auto")
+            for tipo in ("literal", "parafrase"):
+                sub = [p for p in conj if p[2] == tipo]
+                r[f"tfidf_{tipo}"] = _acerto(ind, sub, "tfidf")
+                r[f"hibrida_{tipo}"] = _acerto(ind, sub, "auto")
+        saida["recuperacao"][nome] = r
+
+    saida["sentimento"] = {
+        "v1_cp3": _sentimento(analisar_v1, AMOSTRA_CP3), "v2_cp3": _sentimento(analisar_v2, AMOSTRA_CP3),
+        "v1_nova": _sentimento(analisar_v1, AMOSTRA_NOVA), "v2_nova": _sentimento(analisar_v2, AMOSTRA_NOVA)}
     return saida
 
 

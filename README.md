@@ -1,56 +1,65 @@
-# EduMindAI — MVP
+# EduMindAI — versão 0.2.0
 
 Plataforma educacional com IA para apoiar estudantes neurodivergentes (TEA, TDAH e dislexia), professores e gestores da rede municipal de Camboriú/SC.
-Projeto de Extensão Universitária II — BSI / IFC Camboriú (2026.2).
+Projeto de Extensão Universitária II — BSI / IFC Camboriú (2026.2). Histórico de versões em [CHANGELOG.md](CHANGELOG.md).
 
-## O que já funciona (iteração 1)
+## O que o sistema faz
 
 | Requisito | Funcionalidade |
 |---|---|
 | RF001 | Login com perfis **aluno**, **professor** e **gestor**; cada perfil só acessa suas telas |
-| RF002 | Professor publica o texto da aula → o sistema divide em trechos, indexa e gera versões adaptadas para TDAH, TEA e dislexia; o aluno pode fazer perguntas sobre o material (busca semântica / RAG) |
-| RF003 | Check-in emocional diário do aluno (5 opções com emoji + comentário opcional) |
-| RF004 | Análise de sentimento do check-in e alertas para o professor (risco imediato e tendência negativa), com registro do acompanhamento |
-| RNF001 | Senhas com PBKDF2, comentários criptografados no banco, proteção CSRF, bloqueio após 5 tentativas de login, cabeçalhos de segurança, trilha de auditoria, exportação dos dados do titular, rotina de retenção |
-| RNF002 | Telas sem violações automáticas WCAG 2.1 AA (axe-core), alvos de 44 px, navegação por teclado, letra maior, alto contraste e espaçamento ampliado |
-| RNF003 | Busca semântica com p95 abaixo de 2 ms para 500 trechos (meta: 500 ms) |
+| RF002 | Professor publica o material → o sistema divide em trechos, indexa e gera versões adaptadas para TDAH, TEA e dislexia; o aluno pergunta sobre o material e a resposta vem da **busca híbrida** (embeddings + TF-IDF) |
+| RF003 | Check-in emocional diário do aluno (5 opções + comentário opcional) |
+| RF004 | Sentimento do check-in (v2) e alertas ao professor (risco imediato e tendência negativa) |
+| RF005–RF008 | Publicação e pré-visualização de materiais, perguntas ao material, indicadores do gestor, direitos do titular |
+| **RF009** (0.2.0) | Professor cria turmas, cadastra estudantes, muda o perfil de leitura e registra/revoga o consentimento do responsável |
+| **RF010** (0.2.0) | Importação de materiais em PDF, DOCX e TXT |
+| RNF001 | Senhas com PBKDF2, comentários criptografados, CSRF, bloqueio de login, cabeçalhos de segurança, auditoria, exportação de dados, retenção |
+| RNF002 | Telas acessíveis (WCAG 2.1 AA verificada com axe-core), alvos de 44 px, alto contraste, letra maior |
+| RNF003 | Busca com p95 abaixo de 500 ms |
 
-## Como rodar
+## Como rodar (Windows)
 
-Precisa do Python 3.11 ou mais novo.
+Dê dois cliques em **`iniciar.bat`**. Na primeira vez ele cria o ambiente Python, instala as dependências (inclui o pacote de IA; o modelo de ~470 MB é baixado no primeiro uso) e cria um banco com dados **fictícios**. Depois abra http://localhost:8000.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate        # no Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python -m app.seed               # cria o banco com dados FICTÍCIOS de demonstração
-uvicorn app.main:app --reload
-```
+Para apresentar em outro aparelho na mesma rede Wi-Fi, use `http://IP-DO-PC:8000` (o IP aparece com `ipconfig`).
 
-Abra http://localhost:8000. Todos os usuários de demonstração usam a senha `edumind123`:
+Todos os usuários de demonstração usam a senha `edumind123`:
 
-- `professor@escola.demo`: painel da turma, alertas e materiais
+- `professor@escola.demo`: turma, alertas, materiais e cadastro de alunos
 - `gestora@escola.demo`: indicadores agregados e auditoria
 - `ana@escola.demo` (TDAH), `bruno@escola.demo` (TEA) e `carla@escola.demo` (dislexia): alunos
 
-## Testes e métricas
+### Manualmente
 
 ```bash
-python -m pytest -q                  # 29 testes automatizados
-python tests/medir_desempenho.py     # métricas usadas no relatório parcial
-# capturas de tela + verificação de acessibilidade (precisa de Playwright e axe-core):
-python tests/capturar_telas.py telas/ caminho/para/axe.min.js
+python -m venv .venv
+.venv\Scripts\activate            # Linux/macOS: source .venv/bin/activate
+pip install -r requirements-ia.txt   # ou requirements.txt, sem a busca por embeddings
+python -m app.seed                   # recria o banco com dados de demonstração
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Configuração (variáveis de ambiente)
+## Testes e medições
+
+```bash
+python -m pytest -q                  # 53 testes automatizados
+python tests/medir_desempenho.py     # indicadores do relatório final (docs/medidas_v0.2.0.json)
+python tests/capturar_telas.py telas/ caminho/para/axe.min.js   # capturas + verificação WCAG
+```
+
+## Configuração (variáveis de ambiente, todas opcionais)
 
 | Variável | Para quê |
 |---|---|
-| `DATABASE_URL` | Banco. Padrão: SQLite local. Para PostgreSQL: `postgresql+psycopg://usuario:senha@host/edumindai` |
-| `EDUMIND_SEGREDO_SESSAO` | Segredo do cookie de sessão (defina em produção) |
-| `EDUMIND_CHAVE_DADOS` | Chave Fernet para criptografar os comentários. Se não definir, é gerada no arquivo `.chave_dados` |
-| `EDUMIND_HTTPS=1` | Marca o cookie como seguro (use atrás de HTTPS) |
-| `ANTHROPIC_API_KEY` | Opcional. Se definida, as adaptações passam a ser geradas por um modelo de linguagem; sem ela o sistema usa o adaptador por regras, que funciona offline |
+| `EDUMIND_EMBEDDINGS=0` | Desliga a busca por embeddings (usa só TF-IDF) |
+| `EDUMIND_MODELO_EMBEDDINGS` | Troca o modelo (padrão `intfloat/multilingual-e5-small`) |
+| `EDUMIND_PESO_EMBEDDINGS` | Peso dos embeddings na busca híbrida (padrão 0,8) |
+| `DATABASE_URL` | Banco. Padrão: SQLite (`edumindai.db`). PostgreSQL: instale `psycopg[binary]` e use `postgresql+psycopg://usuario:senha@host/edumindai` |
+| `EDUMIND_SEGREDO_SESSAO` | Segredo do cookie de sessão (sem ele, as sessões caem a cada reinício) |
+| `EDUMIND_CHAVE_DADOS` | Chave Fernet dos comentários. Sem ela, é gerada no arquivo `.chave_dados` |
+| `EDUMIND_HTTPS=1` | Cookie seguro, quando atrás de HTTPS |
+| `ANTHROPIC_API_KEY` | Opcional: adaptações geradas por modelo de linguagem; sem ela, o adaptador por regras funciona offline |
 
 ## Estrutura
 
@@ -58,20 +67,20 @@ python tests/capturar_telas.py telas/ caminho/para/axe.min.js
 app/
   main.py        rotas web (controladores)
   models.py      modelo de dados (SQLAlchemy)
-  rag.py         pipeline RAG: trechos, índice, busca, adaptação por perfil
-  sentimento.py  classificador de sentimento (léxico + escala de humor)
+  db.py          conexão e migração das colunas novas
+  rag.py         RAG: trechos, embeddings, busca híbrida, adaptação por perfil
+  sentimento.py  classificador de sentimento (v2)
   alertas.py     regras dos alertas preditivos
+  importacao.py  leitura de PDF, DOCX e TXT
   seguranca.py   hash de senha, criptografia, CSRF, auditoria
   retencao.py    política de retenção (LGPD)
   seed.py        dados fictícios de demonstração
-  templates/     telas (Jinja2)
-  static/        CSS
-tests/           testes automatizados e scripts de medição
+tests/           testes, gabarito de 50 perguntas, amostras de sentimento e scripts de medição
+docs/            medições da release
 ```
 
-## Próximas iterações
+## Próximos passos
 
-1. Trocar o TF-IDF por embeddings no PostgreSQL + pgvector.
-2. Trocar o classificador por léxico por um modelo Transformer em português (BERTimbau).
-3. Cadastro de turmas e alunos pela interface, além da importação de PDF/DOCX.
-4. Implantar em homologação e validar com a escola parceira.
+1. Validação com professores e estudantes de uma escola parceira (ainda não realizada).
+2. Classificador Transformer (BERTimbau) ajustado com dados reais anonimizados.
+3. Implantação em servidor com HTTPS e PostgreSQL.

@@ -1,0 +1,205 @@
+{
+  "modelo_embeddings": "intfloat/multilingual-e5-small",
+  "peso_embeddings": 0.8,
+  "busca": {
+    "5 materiais": {
+      "trechos": 14,
+      "indexacao_ms": 3481.8,
+      "tfidf": {
+        "media_ms": 5.12,
+        "p95_ms": 9.09
+      },
+      "hibrida": {
+        "media_ms": 130.88,
+        "p95_ms": 229.73
+      }
+    },
+    "100 materiais": {
+      "trechos": 280,
+      "indexacao_ms": 49925.8,
+      "tfidf": {
+        "media_ms": 6.01,
+        "p95_ms": 10.76
+      },
+      "hibrida": {
+        "media_ms": 110.23,
+        "p95_ms": 162.48
+      }
+    }
+  },
+  "recuperacao": {
+    "calibracao": {
+      "tfidf": {
+        "perguntas": 20,
+        "top1": 15,
+        "top3": 19
+      },
+      "hibrida": {
+        "perguntas": 20,
+        "top1": 18,
+        "top3": 20
+      },
+      "tfidf_literal": {
+        "perguntas": 10,
+        "top1": 7,
+        "top3": 10
+      },
+      "hibrida_literal": {
+        "perguntas": 10,
+        "top1": 9,
+        "top3": 10
+      },
+      "tfidf_parafrase": {
+        "perguntas": 10,
+        "top1": 8,
+        "top3": 9
+      },
+      "hibrida_parafrase": {
+        "perguntas": 10,
+        "top1": 9,
+        "top3": 10
+      }
+    },
+    "avaliacao": {
+      "tfidf": {
+        "perguntas": 30,
+        "top1": 24,
+        "top3": 28
+      },
+      "hibrida": {
+        "perguntas": 30,
+        "top1": 26,
+        "top3": 29
+      },
+      "tfidf_literal": {
+        "perguntas": 15,
+        "top1": 13,
+        "top3": 14
+      },
+      "hibrida_literal": {
+        "perguntas": 15,
+        "top1": 14,
+        "top3": 15
+      },
+      "tfidf_parafrase": {
+        "perguntas": 15,
+        "top1": 11,
+        "top3": 14
+      },
+      "hibrida_parafrase": {
+        "perguntas": 15,
+        "top1": 12,
+        "top3": 14
+      }
+    }
+  },
+  "sentimento": {
+    "v1_cp3": {
+      "amostra": 20,
+      "acertos": 17,
+      "erros": [
+        [
+          4,
+          "não gostei da prova mas tudo bem",
+          "neutro",
+          "positivo"
+        ],
+        [
+          3,
+          "foi legal",
+          "neutro",
+          "positivo"
+        ],
+        [
+          2,
+          "tô de boa",
+          "negativo",
+          "neutro"
+        ]
+      ]
+    },
+    "v2_cp3": {
+      "amostra": 20,
+      "acertos": 17,
+      "erros": [
+        [
+          4,
+          "não gostei da prova mas tudo bem",
+          "neutro",
+          "positivo"
+        ],
+        [
+          3,
+          "foi legal",
+          "neutro",
+          "positivo"
+        ],
+        [
+          2,
+          "tô de boa",
+          "negativo",
+          "neutro"
+        ]
+      ]
+    },
+    "v1_nova": {
+      "amostra": 40,
+      "acertos": 32,
+      "erros": [
+        [
+          3,
+          "gostei do lanche mas briguei com meu irmão",
+          "negativo",
+          "positivo"
+        ],
+        [
+          3,
+          "tô meio cansado",
+          "neutro",
+          "negativo"
+        ],
+        [
+          3,
+          "estou com saudade da minha avó",
+          "negativo",
+          "neutro"
+        ],
+        [
+          4,
+          "fiquei nervoso na apresentação mas deu tudo certo",
+          "positivo",
+          "neutro"
+        ],
+        [
+          3,
+          "não foi ruim",
+          "neutro",
+          "positivo"
+        ],
+        [
+          3,
+          "a professora me ajudou",
+          "positivo",
+          "neutro"
+        ],
+        [
+          3,
+          "um pouco cansada mas feliz",
+          "positivo",
+          "neutro"
+        ],
+        [
+          3,
+          "não estou triste",
+          "neutro",
+          "positivo"
+        ]
+      ]
+    },
+    "v2_nova": {
+      "amostra": 40,
+      "acertos": 40,
+      "erros": []
+    }
+  }
+}

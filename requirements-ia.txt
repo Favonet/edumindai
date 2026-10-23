@@ -1,0 +1,5 @@
+# Opcional: busca semântica com embeddings (release 0.2.0).
+# Sem estes pacotes o sistema funciona e usa só o TF-IDF.
+# O modelo intfloat/multilingual-e5-small (~470 MB) é baixado no primeiro uso.
+-r requirements.txt
+sentence-transformers>=3.0

@@ -3,3 +3,5 @@ __pycache__/
 .chave_dados
 .venv/
 .pytest_cache/
+.env
+telas/
