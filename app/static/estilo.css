@@ -52,7 +52,7 @@ main:focus { outline: none; }
             background: var(--primaria-clara); padding: .1rem .6rem; border-radius: 999px; margin: 0 0 .25rem; }
 
 label { display: block; font-weight: 600; margin: .9rem 0 .35rem; }
-input[type=text], input[type=email], input[type=password], textarea, select, input:not([type]) {
+input[type=text], input[type=email], input[type=date], input[type=number], input[type=file], input[type=password], textarea, select, input:not([type]) {
   width: 100%; min-height: 44px; padding: .6rem .75rem; font: inherit; color: var(--texto);
   background: var(--superficie); border: 2px solid var(--borda); border-radius: 8px; }
 textarea { resize: vertical; }

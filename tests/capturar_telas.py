@@ -73,6 +73,27 @@ with sync_playwright() as p:
     page.screenshot(path=SAIDA / "09_prof_alertas.png", full_page=True)
     page.click("nav >> text=Materiais"); axe(page, "prof_materiais")
     page.screenshot(path=SAIDA / "10_prof_materiais.png", full_page=True)
+    # v0.2.0: turmas e alunos (RF009)
+    page.click("nav >> text=Turmas e alunos"); page.wait_for_load_state("networkidle")
+    axe(page, "prof_turmas")
+    page.screenshot(path=SAIDA / "14_prof_turmas.png", full_page=True)
+    page.fill("#nome-aluno", "Isabela Nunes"); page.fill("#email-aluno", "isabela@escola.demo")
+    page.select_option("#perfil-novo", "DISLEXIA")
+    page.click("section[aria-labelledby=novo-aluno] button[type=submit]")
+    page.wait_for_load_state("networkidle")
+    axe(page, "prof_turmas_cadastro")
+    page.screenshot(path=SAIDA / "15_prof_cadastro_senha.png", full_page=False)
+    page.locator("tr", has_text="Isabela Nunes").locator("summary").click()
+    page.locator("tr", has_text="Isabela Nunes").scroll_into_view_if_needed()
+    page.screenshot(path=SAIDA / "16_prof_registro_termo.png", full_page=False)
+    sair(page)
+
+    # v0.2.0: pergunta parafraseada respondida pela busca híbrida (RF002)
+    login(page, "ana@escola.demo"); page.goto(f"{BASE}/aluno/materiais/1")
+    page.fill("#pergunta", "por que chove?")
+    page.click("text=Perguntar >> nth=-1"); page.wait_for_load_state("networkidle")
+    page.locator("section", has=page.locator("#pergunta")).screenshot(
+        path=SAIDA / "17_pergunta_parafrase_hibrida.png")
     sair(page)
 
     # Gestora

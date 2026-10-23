@@ -1,0 +1,50 @@
+{
+  "login": {
+    "violacoes": [],
+    "aprovadas": 14
+  },
+  "aluno_checkin": {
+    "violacoes": [],
+    "aprovadas": 22
+  },
+  "aluno_material_tdah": {
+    "violacoes": [],
+    "aprovadas": 21
+  },
+  "aluno_material_tea": {
+    "violacoes": [],
+    "aprovadas": 21
+  },
+  "prof_painel": {
+    "violacoes": [],
+    "aprovadas": 22
+  },
+  "prof_alertas": {
+    "violacoes": [],
+    "aprovadas": 21
+  },
+  "prof_materiais": {
+    "violacoes": [],
+    "aprovadas": 22
+  },
+  "prof_turmas": {
+    "violacoes": [],
+    "aprovadas": 25
+  },
+  "prof_turmas_cadastro": {
+    "violacoes": [],
+    "aprovadas": 28
+  },
+  "gestor": {
+    "violacoes": [],
+    "aprovadas": 22
+  },
+  "aluno_checkin_mobile": {
+    "violacoes": [],
+    "aprovadas": 22
+  },
+  "aluno_alto_contraste": {
+    "violacoes": [],
+    "aprovadas": 25
+  }
+}
