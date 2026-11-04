@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 .env
 telas/
+
+# segredo da publicação (Cloudflare Tunnel)
+publicar.bat
