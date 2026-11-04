@@ -1,7 +1,7 @@
 # Publicar o EduMindAI na internet (grátis, com o domínio da Cloudflare)
 
 Guia para o Claude Code (ou para você) colocar o sistema no ar num endereço como
-`https://edumind.SEU-DOMINIO.com.br`, para o professor acessar.
+`https://edumind.favo.net.br`, para o professor acessar.
 
 ## Por que não dá para usar Workers/Pages, como na Galeria 3D
 
@@ -68,7 +68,7 @@ Troque `SEU-DOMINIO.com.br` pelo seu domínio:
 
 ```bat
 cloudflared tunnel create edumind
-cloudflared tunnel route dns edumind edumind.SEU-DOMINIO.com.br
+cloudflared tunnel route dns edumind edumind.favo.net.br
 ```
 
 O primeiro comando mostra o **ID do túnel** e cria `C:\Users\User\.cloudflared\<ID>.json`.
@@ -81,7 +81,7 @@ Crie `C:\Users\User\.cloudflared\config.yml` com o conteúdo abaixo, trocando o 
 tunnel: edumind
 credentials-file: C:\Users\User\.cloudflared\<ID>.json
 ingress:
-  - hostname: edumind.SEU-DOMINIO.com.br
+  - hostname: edumind.favo.net.br
     service: http://localhost:8000
   - service: http_status:404
 ```
@@ -113,7 +113,7 @@ ingress:
    alunos no sistema publicado.
 4. **Opcional:** para só os professores entrarem, use o **Cloudflare Access**, como na
    Galeria. Vá em Zero Trust → Access → Applications → Add → Self-hosted, informe o domínio
-   `edumind.SEU-DOMINIO.com.br` e crie uma policy com os e-mails dos professores. Eles
+   `edumind.favo.net.br` e crie uma policy com os e-mails dos professores. Eles
    recebem um código por e-mail para entrar. É grátis até 50 usuários.
 
 ### Passo 6 – Colocar no ar
@@ -130,13 +130,13 @@ depois que aparecer "Abra no navegador". Nas próximas vezes, rode apenas:
 publicar.bat
 ```
 
-Abra `https://edumind.SEU-DOMINIO.com.br`. Para testar, entre com `professor@escola.demo`
+Abra `https://edumind.favo.net.br`. Para testar, entre com `professor@escola.demo`
 e a senha `edumind123`.
 
 ### Passo 7 – Conferir (Claude Code)
 
 ```bat
-curl https://edumind.SEU-DOMINIO.com.br/saude
+curl https://edumind.favo.net.br/saude
 ```
 
 A resposta deve mostrar `"versao":"0.2.0"` e `"busca":"híbrida (embeddings + TF-IDF)"`.
@@ -144,7 +144,7 @@ A resposta deve mostrar `"versao":"0.2.0"` e `"busca":"híbrida (embeddings + TF
 ### Passo 8 – Colocar o link no relatório (CP4)
 
 Em `docs/relatorio/conteudo_cp4.py`, no Apêndice C ou no Anexo A, acrescente
-"Versão de demonstração online: https://edumind.SEU-DOMINIO.com.br (usuários do Apêndice C)".
+"Versão de demonstração online: https://edumind.favo.net.br (usuários do Apêndice C)".
 Depois gere o relatório de novo:
 
 ```bat
@@ -164,6 +164,6 @@ Use esta opção se o professor for acessar em horários em que o seu PC está d
   Hugging Face monta a imagem, então não precisa ter Docker no PC.
 - Configure `EDUMIND_SEGREDO_SESSAO` e `EDUMIND_HTTPS=1` em **Settings → Secrets**.
 - O endereço fica `https://SEU-USUARIO-edumind.hf.space`. Na Cloudflare, dá para criar uma
-  **Redirect Rule** de `edumind.SEU-DOMINIO.com.br` para esse endereço.
+  **Redirect Rule** de `edumind.favo.net.br` para esse endereço.
 - Limites: o Space dorme depois de 48 h sem acesso e acorda no próximo acesso (cerca de
   1 minuto). O banco SQLite volta ao estado de demonstração a cada reinício.

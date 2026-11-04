@@ -437,6 +437,9 @@ def escrever(g):
       "as capturas de tela das Figuras 6 a 12 e do relatório parcial, o resultado da verificação de "
       "acessibilidade e o arquivo de medições usado no Quadro 8.")
     H2("Apêndice C – Como executar e usuários de demonstração")
+    P("A versão de demonstração está publicada em https://edumind.favo.net.br, com os mesmos usuários "
+      "fictícios descritos abaixo, por meio de um túnel da Cloudflare (HTTPS) a partir do computador do "
+      "estudante.")
     P("No Windows, com Python instalado, basta executar o arquivo iniciar.bat na pasta do projeto: ele instala "
       "as dependências, cria o banco de demonstração e abre o sistema em http://localhost:8000. Todos os "
       "usuários fictícios usam a senha edumind123: professor@escola.demo (professor), gestora@escola.demo "
@@ -445,6 +448,8 @@ def escrever(g):
 
     # ------------------------------------------------------------------ Anexos
     H1("Anexos")
+    P("**Sistema online (demonstração):** https://edumind.favo.net.br. Usuário professor@escola.demo, "
+      "senha edumind123 (outros usuários no Apêndice C).", recuo=False)
     P("**Anexo A – Código-fonte da release 0.2.0 (Google Drive):** "
       "https://drive.google.com/file/d/1lpdqY5p4nO7sRYosHtaqYY8aMTycOKnd/view?usp=sharing. O arquivo contém o "
       "código, os 53 testes automatizados, o script de medição dos indicadores do Quadro 8, o script de captura "
